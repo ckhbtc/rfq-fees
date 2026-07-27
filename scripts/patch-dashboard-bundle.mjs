@@ -182,6 +182,49 @@ const headingResult = patchEmbeddedBlock(
 bundle = headingResult.bundle;
 changed ||= headingResult.changed;
 
+const heroResult = patchEmbeddedBlock(
+  bundle,
+  ['{{ kVol }} traded to date', 'eleven million dollars'],
+  '{{ heroVolume }}',
+  'dynamic hero volume',
+);
+bundle = heroResult.bundle;
+changed ||= heroResult.changed;
+
+const simpleNumberFormatter =
+  'function num(v, dp) { return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }\nfunction dayLabel(k) { return MON[+k.slice(5, 7) - 1] + " " + +k.slice(8, 10); }';
+const wordVolumeFormatter =
+  'function num(v, dp) { return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }\nconst SMALL_NUMBER_WORDS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];\nconst TENS_WORDS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];\nfunction wholeNumberWords(value) {\n  const n = Math.floor(value);\n  if (n < 20) return SMALL_NUMBER_WORDS[n];\n  if (n < 100) return TENS_WORDS[Math.floor(n / 10)] + (n % 10 ? "-" + SMALL_NUMBER_WORDS[n % 10] : "");\n  if (n < 1000) return SMALL_NUMBER_WORDS[Math.floor(n / 100)] + " hundred" + (n % 100 ? " " + wholeNumberWords(n % 100) : "");\n  return num(n, 0);\n}\nfunction volumeWords(value) {\n  if (value >= 1e9) return wholeNumberWords(value / 1e9) + " billion dollars";\n  if (value >= 1e6) return wholeNumberWords(value / 1e6) + " million dollars";\n  if (value >= 1e3) return wholeNumberWords(value / 1e3) + " thousand dollars";\n  return wholeNumberWords(value) + " dollars";\n}\nfunction dayLabel(k) { return MON[+k.slice(5, 7) - 1] + " " + +k.slice(8, 10); }';
+const formatterResult = patchEmbeddedBlock(
+  bundle,
+  [simpleNumberFormatter],
+  wordVolumeFormatter,
+  'word-based volume formatter',
+);
+bundle = formatterResult.bundle;
+changed ||= formatterResult.changed;
+
+const heroValueLine =
+  '      heroVolume: volumeWords(totalFee / BPS),\n';
+const encodedHeroValueLine = encodeForEmbeddedJson(heroValueLine);
+while (
+  bundle.includes(encodedHeroValueLine + encodedHeroValueLine)
+) {
+  bundle = bundle.replace(
+    encodedHeroValueLine + encodedHeroValueLine,
+    encodedHeroValueLine,
+  );
+  changed = true;
+}
+const heroValueResult = patchEmbeddedBlock(
+  bundle,
+  ['      kVol: usd(totalFee / BPS),\n'],
+  heroValueLine + '      kVol: usd(totalFee / BPS),\n',
+  'dynamic hero volume value',
+);
+bundle = heroValueResult.bundle;
+changed ||= heroValueResult.changed;
+
 const oldMethodNote =
   'Method \u2014 every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. The window begins where public archive nodes stop keeping a searchable transaction index; the wallet predates it.';
 const newMethodNote =
@@ -196,7 +239,6 @@ bundle = methodResult.bundle;
 changed ||= methodResult.changed;
 
 const textReplacements = [
-  ['eleven million dollars', '{{ kVol }} traded to date'],
   ['The jar, filling', 'Cumulative fees over time'],
   [
     '        <p style="margin: 0; font-size: 17px; line-height: 1.5; color: oklch(0.38 0.012 60); max-width: 58ch; text-wrap: pretty">One wallet on Injective receives a flat 4.0 bps of every request-for-quote fill. Read hour by hour, it becomes a record of when the market was awake — and how much passed through it.</p>\n',

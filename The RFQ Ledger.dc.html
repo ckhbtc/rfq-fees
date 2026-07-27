@@ -31,7 +31,7 @@
 
     <div style="display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; padding: 30px 0 26px; border-bottom: 1px solid oklch(0.82 0.012 60); align-items: start">
       <div style="display: flex; flex-direction: column; gap: 12px">
-        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 76px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points, <em style="font-style: italic; color: oklch(0.5 0.19 25)">{{ kVol }} traded to date</em></h1>
+        <h1 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 76px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points, <em style="font-style: italic; color: oklch(0.5 0.19 25)">{{ heroVolume }}</em></h1>
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">
         <div style="display: flex; flex-direction: column; gap: 2px">
@@ -183,6 +183,21 @@ function usd(v) {
   return "$" + v.toFixed(4);
 }
 function num(v, dp) { return v.toLocaleString("en-US", { minimumFractionDigits: dp, maximumFractionDigits: dp }); }
+const SMALL_NUMBER_WORDS = ["zero","one","two","three","four","five","six","seven","eight","nine","ten","eleven","twelve","thirteen","fourteen","fifteen","sixteen","seventeen","eighteen","nineteen"];
+const TENS_WORDS = ["","","twenty","thirty","forty","fifty","sixty","seventy","eighty","ninety"];
+function wholeNumberWords(value) {
+  const n = Math.floor(value);
+  if (n < 20) return SMALL_NUMBER_WORDS[n];
+  if (n < 100) return TENS_WORDS[Math.floor(n / 10)] + (n % 10 ? "-" + SMALL_NUMBER_WORDS[n % 10] : "");
+  if (n < 1000) return SMALL_NUMBER_WORDS[Math.floor(n / 100)] + " hundred" + (n % 100 ? " " + wholeNumberWords(n % 100) : "");
+  return num(n, 0);
+}
+function volumeWords(value) {
+  if (value >= 1e9) return wholeNumberWords(value / 1e9) + " billion dollars";
+  if (value >= 1e6) return wholeNumberWords(value / 1e6) + " million dollars";
+  if (value >= 1e3) return wholeNumberWords(value / 1e3) + " thousand dollars";
+  return wholeNumberWords(value) + " dollars";
+}
 function dayLabel(k) { return MON[+k.slice(5, 7) - 1] + " " + +k.slice(8, 10); }
 function hourLabel(k) { return dayLabel(k) + " " + k.slice(11, 13) + ":00"; }
 function heat(t) {
@@ -345,6 +360,7 @@ class Component extends DCLogic {
     return Object.assign(base, {
       grid, legend, hourHeads, cellReadout, cumPath, cumArea, cumTicks, marks, xLabels,
       legendMax: fmt({ n: gmax, fee: metric === "notional" ? gmax * BPS : gmax }),
+      heroVolume: volumeWords(totalFee / BPS),
       kVol: usd(totalFee / BPS),
       kFills: fills.toLocaleString("en-US"),
       kAvgFill: usd(totalFee / BPS / fills),
