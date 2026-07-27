@@ -4,10 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "node server.js",
-    "test": "node --test"
+    "rebuild:fees": "node --no-warnings scripts/fetch-fees.mjs --rebuild",
+    "start": "node --no-warnings server.js",
+    "sync:fees": "node --no-warnings scripts/fetch-fees.mjs",
+    "test": "node --no-warnings --test"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.5"
   }
 }

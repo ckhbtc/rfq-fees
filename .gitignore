@@ -3,3 +3,7 @@ node_modules/
 AGENTS.md
 CLAUDE.md
 DEPLOYMENT.md
+data/
+*.db
+*.db-shm
+*.db-wal
