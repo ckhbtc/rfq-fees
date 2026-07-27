@@ -45,6 +45,8 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^text\/html/);
   assert.match(html, /The RFQ Ledger/);
+  assert.match(html, /\{\{ kVol \}\} traded to date/);
+  assert.doesNotMatch(html, /eleven million dollars/);
   assert.match(html, /\/api\/fees/);
   assert.match(html, /feeRefreshTimer/);
   assert.match(html, /Total balance/);
