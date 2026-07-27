@@ -64,6 +64,8 @@ test('serves the bundled RFQ ledger at the root', async () => {
     html,
     /One wallet on Injective receives a flat 4\.0 bps/,
   );
+  assert.match(html, /Cumulative fees over time/);
+  assert.doesNotMatch(html, /The jar, filling/);
 });
 
 test('reports service health', async () => {

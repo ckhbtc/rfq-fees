@@ -171,6 +171,7 @@ bundle = summaryResult.bundle;
 changed ||= summaryResult.changed;
 
 const textReplacements = [
+  ['The jar, filling', 'Cumulative fees over time'],
   [
     '        <p style="margin: 0; font-size: 17px; line-height: 1.5; color: oklch(0.38 0.012 60); max-width: 58ch; text-wrap: pretty">One wallet on Injective receives a flat 4.0 bps of every request-for-quote fill. Read hour by hour, it becomes a record of when the market was awake — and how much passed through it.</p>\n',
     '',
