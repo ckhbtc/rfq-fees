@@ -1,13 +1,27 @@
 import assert from 'node:assert/strict';
 import { after, before, test } from 'node:test';
 
+import { createFeeStore } from '../lib/fee-store.js';
 import { createFeeServer } from '../server.js';
 
 let baseUrl;
+let feeStore;
 let server;
 
 before(async () => {
-  server = createFeeServer();
+  feeStore = createFeeStore({ dbPath: ':memory:' });
+  feeStore.seedFromCsv(
+    [
+      'hour_utc,fills,fee_micro_usdc,largest_single_fee_micro_usdc',
+      '2026-07-27T20,2,3000000,2000000',
+      '',
+    ].join('\n'),
+    '2026-07-27T20:55:00Z',
+  );
+  server = createFeeServer({
+    feeStore,
+    refreshIntervalMs: 60 * 60 * 1000,
+  });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(0, '127.0.0.1', resolve);
@@ -21,6 +35,7 @@ after(async () => {
   await new Promise((resolve, reject) => {
     server.close((error) => (error ? reject(error) : resolve()));
   });
+  feeStore.close();
 });
 
 test('serves the bundled RFQ ledger at the root', async () => {
@@ -37,6 +52,28 @@ test('reports service health', async () => {
 
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), { status: 'ok' });
+});
+
+test('serves cached fee history with hourly refresh metadata', async () => {
+  const response = await fetch(`${baseUrl}/api/fees`);
+  const payload = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(
+    response.headers.get('cache-control'),
+    'public, max-age=300, stale-while-revalidate=3600',
+  );
+  assert.equal(payload.source, 'sqlite');
+  assert.equal(payload.snapshotAt, '2026-07-27T20:55:00Z');
+  assert.equal(payload.refreshIntervalSeconds, 3600);
+  assert.deepEqual(payload.rows, [
+    {
+      key: '2026-07-27T20',
+      n: 2,
+      fee: 3,
+      max: 2,
+    },
+  ]);
 });
 
 test('returns 404 for files outside the public bundle', async () => {
