@@ -48,6 +48,20 @@ test('converts successful fee transactions into stored rows', () => {
   );
 });
 
+test('canonicalizes explorer and LCD transaction hash formats', () => {
+  const lcd = toFeeTransfer(
+    transaction({ txhash: 'ABC123' }),
+    { address, denom },
+  );
+  const explorer = toFeeTransfer(
+    transaction({ txhash: '0xabc123' }),
+    { address, denom },
+  );
+
+  assert.equal(lcd.txHash, 'ABC123');
+  assert.equal(explorer.txHash, 'ABC123');
+});
+
 test('ignores failed transactions and unrelated transfers', () => {
   assert.equal(
     toFeeTransfer(transaction({ code: 5 }), {

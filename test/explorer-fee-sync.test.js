@@ -65,7 +65,7 @@ test('normalizes successful explorer fee transfers', () => {
       { address, denom },
     ),
     {
-      txHash: '0xA',
+      txHash: 'A',
       height: 100,
       timestamp: '2026-06-02T17:49:59.737Z',
       hourUtc: '2026-06-02T17',
