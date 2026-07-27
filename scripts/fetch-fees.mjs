@@ -7,6 +7,7 @@ import {
   getFeeDbPath,
   USDC_DENOM,
 } from '../lib/fee-config.js';
+import { createExplorerFeeBackfill } from '../lib/explorer-fee-sync.js';
 import { createFeeStore } from '../lib/fee-store.js';
 import { createFeeSync } from '../lib/fee-sync.js';
 import { SNAPSHOT_AT } from '../fee-data.js';
@@ -21,10 +22,15 @@ const sync = createFeeSync({
   address: FEE_COLLECTOR_ADDRESS,
   denom: USDC_DENOM,
 });
+const backfill = createExplorerFeeBackfill({
+  store,
+  address: FEE_COLLECTOR_ADDRESS,
+  denom: USDC_DENOM,
+});
 
 try {
   const result = process.argv.includes('--rebuild')
-    ? await sync.rebuild()
+    ? await backfill.rebuild()
     : await sync.syncIncremental();
   const stats = store.getStats();
   console.log(
