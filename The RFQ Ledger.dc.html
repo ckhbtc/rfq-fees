@@ -105,7 +105,7 @@
       <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap">
         <div style="display: flex; align-items: baseline; gap: 12px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: oklch(0.5 0.19 25); font-weight: 600">Fig. 2</span>
-          <h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; line-height: 1">Every hour in the searchable window</h2>
+          <h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; line-height: 1">Hourly fee activity</h2>
         </div>
         <div style="display: flex; gap: 3px; border: 1px solid oklch(0.78 0.012 60); padding: 3px; background: oklch(0.985 0.006 85)">
           <button type="button" onClick="{{ pickFees }}" style="{{ feesBtn }}">fees</button>
@@ -162,7 +162,7 @@
       </div>
     </div>
 
-    <p style="margin: 18px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 10px; line-height: 1.9; color: oklch(0.55 0.012 60); max-width: 96ch">Method — every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. The window begins where public archive nodes stop keeping a searchable transaction index; the wallet predates it.</p>
+    <p style="margin: 18px 0 0; font-family: 'IBM Plex Mono', monospace; font-size: 10px; line-height: 1.9; color: oklch(0.55 0.012 60); max-width: 96ch">Method: every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. History begins with the collector's earliest transaction retained by the Injective explorer index.</p>
   </div>
 </div>
 

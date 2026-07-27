@@ -60,6 +60,12 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.doesNotMatch(html, /Balance today/);
   assert.doesNotMatch(html, /USDC · \{\{ kDays \}\}/);
   assert.doesNotMatch(html, /Every hour, all \{\{ kDays \}\}/);
+  assert.doesNotMatch(html, /Every hour in the searchable window/);
+  assert.match(html, /Hourly fee activity/);
+  assert.match(
+    html,
+    /earliest transaction retained by the Injective explorer index/,
+  );
   assert.doesNotMatch(
     html,
     /One wallet on Injective receives a flat 4\.0 bps/,

@@ -170,13 +170,37 @@ const summaryResult = patchEmbeddedBlock(
 bundle = summaryResult.bundle;
 changed ||= summaryResult.changed;
 
+const headingResult = patchEmbeddedBlock(
+  bundle,
+  [
+    'Every hour in the searchable window',
+    'Every hour, all {{ kDays }}',
+  ],
+  'Hourly fee activity',
+  'hourly activity heading',
+);
+bundle = headingResult.bundle;
+changed ||= headingResult.changed;
+
+const oldMethodNote =
+  'Method \u2014 every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. The window begins where public archive nodes stop keeping a searchable transaction index; the wallet predates it.';
+const newMethodNote =
+  "Method: every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. History begins with the collector's earliest transaction retained by the Injective explorer index.";
+const methodResult = patchEmbeddedBlock(
+  bundle,
+  [oldMethodNote],
+  newMethodNote,
+  'dashboard method note',
+);
+bundle = methodResult.bundle;
+changed ||= methodResult.changed;
+
 const textReplacements = [
   ['The jar, filling', 'Cumulative fees over time'],
   [
     '        <p style="margin: 0; font-size: 17px; line-height: 1.5; color: oklch(0.38 0.012 60); max-width: 58ch; text-wrap: pretty">One wallet on Injective receives a flat 4.0 bps of every request-for-quote fill. Read hour by hour, it becomes a record of when the market was awake — and how much passed through it.</p>\n',
     '',
   ],
-  ['Every hour, all {{ kDays }}', 'Every hour in the searchable window'],
   [
     'kBal: this.state.balance == null ? "…" : num(this.state.balance, 0),',
     'kBal: this.state.balance == null ? "…" : "$" + num(this.state.balance, 0),',
