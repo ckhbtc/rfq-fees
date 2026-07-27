@@ -47,6 +47,19 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.match(html, /The RFQ Ledger/);
   assert.match(html, /\/api\/fees/);
   assert.match(html, /feeRefreshTimer/);
+  assert.match(html, /Total balance/);
+  assert.match(html, /\{\{ kBal \}\}/);
+  assert.match(html, /Fee rate/);
+  assert.match(html, /balanceRefreshTimer/);
+  assert.ok(
+    html.includes(
+      'kBal: this.state.balance == null ? \\"…\\" : \\"$\\" + num',
+    ),
+  );
+  assert.doesNotMatch(html, /Fees collected/);
+  assert.doesNotMatch(html, /Balance today/);
+  assert.doesNotMatch(html, /USDC · \{\{ kDays \}\}/);
+  assert.doesNotMatch(html, /Every hour, all \{\{ kDays \}\}/);
 });
 
 test('reports service health', async () => {

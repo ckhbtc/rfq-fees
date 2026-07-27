@@ -36,9 +36,9 @@
       </div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">
         <div style="display: flex; flex-direction: column; gap: 2px">
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Fees collected</span>
-          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kFees }}</span>
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">USDC · {{ kDays }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Total balance</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kBal }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">read live from chain</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 2px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Notional traded</span>
@@ -51,9 +51,9 @@
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">avg {{ kAvgFill }} each</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 2px">
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Balance today</span>
-          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kBal }}</span>
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">read live from chain</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Fee rate</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">4.0 bps</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">flat on every fill</span>
         </div>
       </div>
     </div>
@@ -106,7 +106,7 @@
       <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap">
         <div style="display: flex; align-items: baseline; gap: 12px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: oklch(0.5 0.19 25); font-weight: 600">Fig. 2</span>
-          <h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; line-height: 1">Every hour, all {{ kDays }}</h2>
+          <h2 style="margin: 0; font-family: 'Instrument Serif', serif; font-size: 30px; font-weight: 400; line-height: 1">Every hour in the searchable window</h2>
         </div>
         <div style="display: flex; gap: 3px; border: 1px solid oklch(0.78 0.012 60); padding: 3px; background: oklch(0.985 0.006 85)">
           <button type="button" onClick="{{ pickFees }}" style="{{ feesBtn }}">fees</button>
@@ -211,9 +211,7 @@ class Component extends DCLogic {
       });
   };
 
-  componentDidMount() {
-    this.loadFees();
-    this.feeRefreshTimer = setInterval(this.loadFees, 60 * 60 * 1000);
+  loadBalance = () => {
     fetch(LCD + "/cosmos/bank/v1beta1/balances/" + ADDR)
       .then((r) => r.json())
       .then((j) => {
@@ -221,10 +219,18 @@ class Component extends DCLogic {
         if (b) this.setState({ balance: +b.amount / 1e6 });
       })
       .catch(() => {});
+  };
+
+  componentDidMount() {
+    this.loadFees();
+    this.loadBalance();
+    this.feeRefreshTimer = setInterval(this.loadFees, 60 * 60 * 1000);
+    this.balanceRefreshTimer = setInterval(this.loadBalance, 60 * 60 * 1000);
   }
 
   componentWillUnmount() {
     clearInterval(this.feeRefreshTimer);
+    clearInterval(this.balanceRefreshTimer);
   }
 
   renderVals() {
@@ -240,7 +246,7 @@ class Component extends DCLogic {
       feesBtn: btn(metric === "fees"),
       volBtn: btn(metric === "notional"),
       fillsBtn: btn(metric === "fills"),
-      kBal: this.state.balance == null ? "…" : num(this.state.balance, 0),
+      kBal: this.state.balance == null ? "…" : "$" + num(this.state.balance, 0),
     };
     const rows = this.state.rows;
     if (!rows) return base;
@@ -340,11 +346,9 @@ class Component extends DCLogic {
     return Object.assign(base, {
       grid, legend, hourHeads, cellReadout, cumPath, cumArea, cumTicks, marks, xLabels,
       legendMax: fmt({ n: gmax, fee: metric === "notional" ? gmax * BPS : gmax }),
-      kFees: num(totalFee, 0),
       kVol: usd(totalFee / BPS),
       kFills: fills.toLocaleString("en-US"),
       kAvgFill: usd(totalFee / BPS / fills),
-      kDays: dayKeys.length + " days",
       rangeLabel: hourLabel(rows[0].key) + " → " + hourLabel(rows[rows.length - 1].key) + " UTC",
       bigFee: num(biggest.max, 2),
       bigVol: usd(biggest.max / BPS),
