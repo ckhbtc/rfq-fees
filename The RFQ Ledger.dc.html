@@ -195,8 +195,25 @@ function heat(t) {
 class Component extends DCLogic {
   state = { rows: null, metric: null, cell: null, balance: null };
 
+  loadFees = () => {
+    fetch("/api/fees", { cache: "no-store" })
+      .then((r) => {
+        if (!r.ok) throw new Error("fee cache unavailable");
+        return r.json();
+      })
+      .then((j) => this.setState({ rows: j.rows }))
+      .catch(() => {
+        if (!this.state.rows) {
+          import("./fee-data.js").then((m) =>
+            this.setState({ rows: m.parseHourly() })
+          );
+        }
+      });
+  };
+
   componentDidMount() {
-    import("./fee-data.js").then((m) => this.setState({ rows: m.parseHourly() }));
+    this.loadFees();
+    this.feeRefreshTimer = setInterval(this.loadFees, 60 * 60 * 1000);
     fetch(LCD + "/cosmos/bank/v1beta1/balances/" + ADDR)
       .then((r) => r.json())
       .then((j) => {
@@ -204,6 +221,10 @@ class Component extends DCLogic {
         if (b) this.setState({ balance: +b.amount / 1e6 });
       })
       .catch(() => {});
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.feeRefreshTimer);
   }
 
   renderVals() {

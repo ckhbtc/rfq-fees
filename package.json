@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/patch-dashboard-bundle.mjs",
     "rebuild:fees": "node --no-warnings scripts/fetch-fees.mjs --rebuild",
     "start": "node --no-warnings server.js",
     "sync:fees": "node --no-warnings scripts/fetch-fees.mjs",

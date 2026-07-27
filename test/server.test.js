@@ -45,6 +45,8 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^text\/html/);
   assert.match(html, /The RFQ Ledger/);
+  assert.match(html, /\/api\/fees/);
+  assert.match(html, /feeRefreshTimer/);
 });
 
 test('reports service health', async () => {
