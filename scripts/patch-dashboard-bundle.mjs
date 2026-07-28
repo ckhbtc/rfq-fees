@@ -4,6 +4,32 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
 const bundlePath = resolve('dist/index.html');
+const sourcePath = resolve('The RFQ Ledger.dc.html');
+const baseStyleBlock = `<style>
+  html, body { margin: 0; padding: 0; background: oklch(0.965 0.008 85); }
+  * { box-sizing: border-box; }
+  a { color: oklch(0.5 0.19 25); text-decoration: none; border-bottom: 1px solid oklch(0.5 0.19 25 / 0.4); }
+  a:hover { color: oklch(0.35 0.14 25); border-bottom-color: oklch(0.35 0.14 25); }
+  @keyframes sweep { from { clip-path: inset(0 100% 0 0); } to { clip-path: inset(0 0 0 0); } }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+</style>`;
+const desktopHeatmapBlock = `      <div style="display: flex; flex-direction: column; gap: 3px">
+        <div style="display: flex; gap: 3px; padding-left: 58px">
+          <sc-for list="{{ hourHeads }}" as="h" hint-placeholder-count="24">
+            <span style="flex: 1 1 0; min-width: 0; font-family: 'IBM Plex Mono', monospace; font-size: 9px; color: oklch(0.55 0.012 60); text-align: center">{{ h }}</span>
+          </sc-for>
+        </div>
+        <sc-for list="{{ grid }}" as="row" hint-placeholder-count="17">
+          <div style="display: flex; align-items: center; gap: 3px">
+            <span style="flex: 0 0 55px; font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: oklch(0.4 0.012 60); text-align: right; padding-right: 3px">{{ row.label }}</span>
+            <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="24">
+              <div sc-camel-on-mouse-enter="{{ c.hover }}" title="{{ c.title }}" style="flex: 1 1 0; min-width: 0; height: 20px; background: {{ c.bg }}; border: {{ c.border }}; cursor: crosshair"></div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </div>
+
+`;
 const staticDataBlock = `  componentDidMount() {
     import("./fee-data.js").then((m) => this.setState({ rows: m.parseHourly() }));
     fetch(LCD + "/cosmos/bank/v1beta1/balances/" + ADDR)
@@ -149,6 +175,27 @@ function patchEmbeddedBlock(bundle, candidates, replacement, description) {
   throw new Error(`could not find ${description} in dist/index.html`);
 }
 
+const sourcePage = await readFile(sourcePath, 'utf8');
+const responsiveStyleBlock = sourcePage.match(/<style>[\s\S]*?<\/style>/)?.[0];
+const mobileHeatmapStart = sourcePage.indexOf(
+  '      <p class="mobile-swipe-hint">',
+);
+const mobileHeatmapEnd = sourcePage.indexOf(
+  '      <div class="heatmap-readout-row"',
+  mobileHeatmapStart,
+);
+if (
+  !responsiveStyleBlock ||
+  mobileHeatmapStart === -1 ||
+  mobileHeatmapEnd === -1
+) {
+  throw new Error('could not extract responsive dashboard blocks from source');
+}
+const mobileHeatmapBlock = sourcePage
+  .slice(mobileHeatmapStart, mobileHeatmapEnd)
+  .replaceAll('onMouseEnter=', 'sc-camel-on-mouse-enter=')
+  .replaceAll('onClick=', 'sc-camel-on-click=');
+
 let bundle = await readFile(bundlePath, 'utf8');
 let changed = false;
 
@@ -238,11 +285,119 @@ const methodResult = patchEmbeddedBlock(
 bundle = methodResult.bundle;
 changed ||= methodResult.changed;
 
+const styleResult = patchEmbeddedBlock(
+  bundle,
+  [baseStyleBlock],
+  responsiveStyleBlock,
+  'responsive dashboard styles',
+);
+bundle = styleResult.bundle;
+changed ||= styleResult.changed;
+
+const heatmapResult = patchEmbeddedBlock(
+  bundle,
+  [desktopHeatmapBlock],
+  mobileHeatmapBlock,
+  'mobile heatmap',
+);
+bundle = heatmapResult.bundle;
+changed ||= heatmapResult.changed;
+
+const xLabelsResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '    const xLabels = dayKeys.map((d, i) => (dayKeys.length > 12 && i % 2 ? "" : dayLabel(d + "T00")));\n',
+  ],
+  '    const labelStep = Math.max(1, Math.ceil((dayKeys.length - 1) / 4));\n    const xLabels = dayKeys.map((d, i) =>\n      i === 0 || i === dayKeys.length - 1 || i % labelStep === 0\n        ? dayLabel(d + "T00")\n        : ""\n    );\n',
+  'responsive cumulative chart labels',
+);
+bundle = xLabelsResult.bundle;
+changed ||= xLabelsResult.changed;
+
+const readoutResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '      : "Hover any cell. Each row is a day, each column an hour, UTC. Hatched cells are hours with no RFQ activity at all.";\n',
+  ],
+  '      : "Tap or hover any cell. Each row is a day, each column an hour, UTC. Hatched cells are hours with no RFQ activity at all.";\n',
+  'mobile heatmap readout',
+);
+bundle = readoutResult.bundle;
+changed ||= readoutResult.changed;
+
 const textReplacements = [
   ['The jar, filling', 'Cumulative fees over time'],
   [
     '        <p style="margin: 0; font-size: 17px; line-height: 1.5; color: oklch(0.38 0.012 60); max-width: 58ch; text-wrap: pretty">One wallet on Injective receives a flat 4.0 bps of every request-for-quote fill. Read hour by hour, it becomes a record of when the market was awake — and how much passed through it.</p>\n',
     '',
+  ],
+  [
+    '<div style="background: oklch(0.965 0.008 85); color: oklch(0.22 0.012 60); font-family: \'IBM Plex Sans\', system-ui, sans-serif; min-height: 100vh; padding: 44px 32px 72px; display: flex; justify-content: center">',
+    '<div class="page-frame" style="background: oklch(0.965 0.008 85); color: oklch(0.22 0.012 60); font-family: \'IBM Plex Sans\', system-ui, sans-serif; min-height: 100vh; padding: 44px 32px 72px; display: flex; justify-content: center">',
+  ],
+  [
+    '  <div style="width: 100%; max-width: 1120px; display: flex; flex-direction: column">',
+    '  <div class="page-shell" style="width: 100%; max-width: 1120px; display: flex; flex-direction: column">',
+  ],
+  [
+    '    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 3px double oklch(0.22 0.012 60)">',
+    '    <div class="masthead" style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-bottom: 8px; border-bottom: 3px double oklch(0.22 0.012 60)">',
+  ],
+  [
+    '      <span style="font-family: \'IBM Plex Mono\', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.5 0.012 60)">Injective mainnet',
+    '      <span class="masthead-source" style="font-family: \'IBM Plex Mono\', monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: oklch(0.5 0.012 60)">Injective mainnet',
+  ],
+  [
+    '    <div style="display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; padding: 30px 0 26px; border-bottom: 1px solid oklch(0.82 0.012 60); align-items: start">',
+    '    <div class="hero-layout" style="display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; padding: 30px 0 26px; border-bottom: 1px solid oklch(0.82 0.012 60); align-items: start">',
+  ],
+  [
+    '        <h1 style="margin: 0; font-family: \'Instrument Serif\', Georgia, serif;',
+    '        <h1 class="hero-title" style="margin: 0; font-family: \'Instrument Serif\', Georgia, serif;',
+  ],
+  [
+    '      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">',
+    '      <div class="metrics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">',
+  ],
+  [
+    '    <div style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 18px">',
+    '    <div class="figure-section cumulative-section" style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 18px">',
+  ],
+  [
+    '      <div style="display: flex; gap: 12px">',
+    '      <div class="cumulative-chart" style="display: flex; gap: 12px">',
+  ],
+  [
+    '          <div style="display: flex">\n            <sc-for list="{{ xLabels }}"',
+    '          <div class="cumulative-x-labels" style="display: flex">\n            <sc-for list="{{ xLabels }}"',
+  ],
+  [
+    '              <div style="position: absolute; left: {{ m.left }}; top: {{ m.labelTop }}; transform: translateX(-50%); pointer-events: none; text-align: center; animation: fadein 600ms ease-out both 1700ms">',
+    '              <div style="position: absolute; left: {{ m.left }}; top: {{ m.labelTop }}; transform: {{ m.labelTransform }}; pointer-events: none; text-align: center; animation: fadein 600ms ease-out both 1700ms">',
+  ],
+  [
+    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        text: "steepest hour',
+    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-50%)",\n        text: "steepest hour',
+  ],
+  [
+    '        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        text: num(totalFee, 0) + " USDC",',
+    '        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-100%)",\n        text: num(totalFee, 0) + " USDC",',
+  ],
+  [
+    '    <div style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 16px">',
+    '    <div class="figure-section heatmap-section" style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 16px">',
+  ],
+  [
+    '      <div style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-top: 4px">',
+    '      <div class="heatmap-readout-row" style="display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding-top: 4px">',
+  ],
+  [
+    '    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; padding: 32px 0 30px; border-bottom: 3px double oklch(0.22 0.012 60)">',
+    '    <div class="notes-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 32px; padding: 32px 0 30px; border-bottom: 3px double oklch(0.22 0.012 60)">',
+  ],
+  [
+    '    <p style="margin: 18px 0 0; font-family: \'IBM Plex Mono\', monospace;',
+    '    <p class="method-note" style="margin: 18px 0 0; font-family: \'IBM Plex Mono\', monospace;',
   ],
   [
     'kBal: this.state.balance == null ? "…" : num(this.state.balance, 0),',

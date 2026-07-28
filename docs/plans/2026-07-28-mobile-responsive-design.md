@@ -23,7 +23,8 @@ layout below 700 pixels rather than creating a separate mobile page.
 
 ## Heatmap
 
-- Put the hourly grid in a contained horizontal scroll surface.
+- Put the hourly grid in a contained two-axis scroll surface capped at roughly
+  two-thirds of the viewport height.
 - Give each hourly cell a fixed readable width and height on mobile.
 - Keep the day label pinned to the left while hours scroll underneath it.
 - Show a mobile-only swipe instruction.
@@ -31,7 +32,7 @@ layout below 700 pixels rather than creating a separate mobile page.
 - Update the default instruction to say "Tap or hover any cell."
 
 Every hour and day remains available. The page itself must not gain horizontal
-overflow; only the heatmap surface scrolls.
+overflow; only the heatmap surface scrolls in either direction.
 
 ## Data and Errors
 

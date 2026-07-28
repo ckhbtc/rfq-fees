@@ -84,6 +84,16 @@ test('serves the bundled RFQ ledger at the root', async () => {
   );
   assert.match(html, /Cumulative fees over time/);
   assert.doesNotMatch(html, /The jar, filling/);
+  assert.match(html, /@media \(max-width: 700px\)/);
+  assert.match(html, /class=\\"page-frame\\"/);
+  assert.match(html, /class=\\"heatmap-scroll\\"/);
+  assert.match(html, /class=\\"mobile-swipe-hint\\"/);
+  assert.match(html, /max-height: 68svh/);
+  assert.match(html, /min-width: 740px/);
+  assert.match(html, /Tap or hover any cell/);
+  assert.match(html, /sc-camel-on-click=\\"\{\{ c\.hover \}\}\\"/);
+  assert.match(html, /const labelStep = Math\.max/);
+  assert.match(html, /labelTransform: \\"translateX\(-100%\)\\"/);
 });
 
 test('reports service health', async () => {
