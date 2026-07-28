@@ -94,6 +94,17 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.match(html, /sc-camel-on-click=\\"\{\{ c\.hover \}\}\\"/);
   assert.match(html, /const labelStep = Math\.max/);
   assert.match(html, /labelTransform: \\"translateX\(-100%\)\\"/);
+  assert.match(html, /Record UTC day/);
+  assert.match(html, /Last 24h fees/);
+  assert.match(html, /\{\{ kRecordDayFee \}\}/);
+  assert.match(html, /\{\{ recordDayNote \}\}/);
+  assert.match(html, /\{\{ kLast24h \}\}/);
+  assert.match(html, /const last24Start = lastHourMs - 23 \* 60 \* 60 \* 1000/);
+  assert.match(html, /const annotationsCrowded =/);
+  assert.match(html, /annotationsCrowded \? 18 : -26/);
+  assert.match(html, /annotationsCrowded \? -44 : -26/);
+  assert.match(html, /const peakLabelTransform = annotationsCrowded/);
+  assert.match(html, /labelTransform: peakLabelTransform/);
 });
 
 test('reports service health', async () => {

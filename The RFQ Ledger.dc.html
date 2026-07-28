@@ -124,6 +124,16 @@
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">4.0 bps</span>
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">flat on every fill</span>
         </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record UTC day</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecordDayFee }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ recordDayNote }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Last 24h fees</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kLast24h }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ last24Note }}</span>
+        </div>
       </div>
     </div>
 
@@ -352,6 +362,21 @@ class Component extends DCLogic {
     const totalFee = rows.reduce((a, r) => a + r.fee, 0);
     const fills = rows.reduce((a, r) => a + r.n, 0);
     const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);
+    const recordDay = dayKeys.reduce(
+      (best, day) => (byDay[day].fee > best.fee ? byDay[day] : best),
+      byDay[dayKeys[0]]
+    );
+    const latestRow = rows[rows.length - 1];
+    const latestDay = latestRow.key.slice(0, 10);
+    const recordDayNote = recordDay.key.slice(0, 10) === latestDay
+      ? dayLabel(recordDay.key) + " UTC · partial through " + latestRow.key.slice(11, 13) + ":00"
+      : dayLabel(recordDay.key) + " · 00:00–23:59 UTC";
+    const lastHourMs = Date.parse(latestRow.key + ":00:00Z");
+    const last24Start = lastHourMs - 23 * 60 * 60 * 1000;
+    const last24Fee = rows.reduce(
+      (sum, r) => Date.parse(r.key + ":00:00Z") >= last24Start ? sum + r.fee : sum,
+      0
+    );
 
     // ---- Fig 1: cumulative curve ----
     const W = 1000, H = 250;
@@ -366,18 +391,32 @@ class Component extends DCLogic {
     for (let i = 4; i >= 0; i--) cumTicks.push(i === 0 ? "0" : num((totalFee * i) / 4, 0));
 
     const steepest = pts.reduce((a, p, i) => (i > 0 && p.r.fee > a.r.fee ? p : a), pts[0]);
+    const endPoint = pts[pts.length - 1];
+    const annotationsCrowded =
+      W - steepest.x < 240 && Math.abs(steepest.y - endPoint.y) < 54;
+    const steepestLabelOffset = annotationsCrowded ? 18 : -26;
+    const endLabelOffset = annotationsCrowded ? -44 : -26;
+    const peakLabelTransform = annotationsCrowded
+      ? "translateX(-100%)"
+      : "translateX(-50%)";
+    const labelTop = (point, offset) =>
+      "calc(" +
+      ((point.y / H) * 100).toFixed(2) +
+      "% " +
+      (offset < 0 ? "- " + Math.abs(offset) : "+ " + offset) +
+      "px)";
     const marks = [
       {
         left: ((steepest.x / W) * 100).toFixed(2) + "%",
         top: ((steepest.y / H) * 100).toFixed(2) + "%",
-        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",
-        labelTransform: "translateX(-50%)",
+        labelTop: labelTop(steepest, steepestLabelOffset),
+        labelTransform: peakLabelTransform,
         text: "steepest hour · " + hourLabel(steepest.r.key) + " · +" + num(steepest.r.fee, 0),
       },
       {
         left: "100%",
-        top: ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "%",
-        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",
+        top: ((endPoint.y / H) * 100).toFixed(2) + "%",
+        labelTop: labelTop(endPoint, endLabelOffset),
         labelTransform: "translateX(-100%)",
         text: num(totalFee, 0) + " USDC",
       },
@@ -444,6 +483,10 @@ class Component extends DCLogic {
       kVol: usd(totalFee / BPS),
       kFills: fills.toLocaleString("en-US"),
       kAvgFill: usd(totalFee / BPS / fills),
+      kRecordDayFee: "$" + num(recordDay.fee, 0),
+      recordDayNote,
+      kLast24h: "$" + num(last24Fee, 0),
+      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",
       rangeLabel: hourLabel(rows[0].key) + " → " + hourLabel(rows[rows.length - 1].key) + " UTC",
       bigFee: num(biggest.max, 2),
       bigVol: usd(biggest.max / BPS),

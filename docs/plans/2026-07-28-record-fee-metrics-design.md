@@ -27,8 +27,9 @@ Both cards reuse the existing cached fee history and currency formatting.
 Keep both the final cumulative total and peak-hour annotations. Detect crowding
 when the peak point is near the right edge and vertically close to the final
 point. In that case, place the final total farther above its point and the peak
-hour below its point. Otherwise retain the current placement. The calculation
-uses chart coordinates and fixed visual offsets, so it works consistently on
+hour below its point. The peak label also becomes right-anchored so it stays
+inside the chart. Otherwise retain the current placement. The calculation uses
+chart coordinates and fixed visual offsets, so it works consistently on
 desktop and mobile.
 
 ## Verification

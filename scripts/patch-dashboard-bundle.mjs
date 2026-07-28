@@ -152,6 +152,18 @@ const newSummaryBlock = `        <div style="display: flex; flex-direction: colu
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">4.0 bps</span>
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">flat on every fill</span>
         </div>`;
+const recordMetricsBlock = `
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record UTC day</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecordDayFee }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ recordDayNote }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Last 24h fees</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kLast24h }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ last24Note }}</span>
+        </div>`;
+const sixCardSummaryBlock = newSummaryBlock + recordMetricsBlock;
 
 const encodeForEmbeddedJson = (value) =>
   JSON.stringify(value).slice(1, -1).replaceAll('</', '<\\u002F');
@@ -210,8 +222,8 @@ changed ||= dataResult.changed;
 
 const summaryResult = patchEmbeddedBlock(
   bundle,
-  [oldSummaryBlock],
-  newSummaryBlock,
+  [oldSummaryBlock, newSummaryBlock],
+  sixCardSummaryBlock,
   'dashboard summary',
 );
 bundle = summaryResult.bundle;
@@ -271,6 +283,63 @@ const heroValueResult = patchEmbeddedBlock(
 );
 bundle = heroValueResult.bundle;
 changed ||= heroValueResult.changed;
+
+const recordMetricsResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n',
+  ],
+  '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n    const recordDay = dayKeys.reduce(\n      (best, day) => (byDay[day].fee > best.fee ? byDay[day] : best),\n      byDay[dayKeys[0]]\n    );\n    const latestRow = rows[rows.length - 1];\n    const latestDay = latestRow.key.slice(0, 10);\n    const recordDayNote = recordDay.key.slice(0, 10) === latestDay\n      ? dayLabel(recordDay.key) + " UTC · partial through " + latestRow.key.slice(11, 13) + ":00"\n      : dayLabel(recordDay.key) + " · 00:00–23:59 UTC";\n    const lastHourMs = Date.parse(latestRow.key + ":00:00Z");\n    const last24Start = lastHourMs - 23 * 60 * 60 * 1000;\n    const last24Fee = rows.reduce(\n      (sum, r) => Date.parse(r.key + ":00:00Z") >= last24Start ? sum + r.fee : sum,\n      0\n    );\n',
+  'record fee metrics',
+);
+bundle = recordMetricsResult.bundle;
+changed ||= recordMetricsResult.changed;
+
+const annotationSetupResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '    const steepest = pts.reduce((a, p, i) => (i > 0 && p.r.fee > a.r.fee ? p : a), pts[0]);\n    const marks = [\n',
+    '    const steepest = pts.reduce((a, p, i) => (i > 0 && p.r.fee > a.r.fee ? p : a), pts[0]);\n    const endPoint = pts[pts.length - 1];\n    const annotationsCrowded =\n      W - steepest.x < 240 && Math.abs(steepest.y - endPoint.y) < 54;\n    const steepestLabelOffset = annotationsCrowded ? 18 : -26;\n    const endLabelOffset = annotationsCrowded ? -44 : -26;\n    const labelTop = (point, offset) =>\n      "calc(" +\n      ((point.y / H) * 100).toFixed(2) +\n      "% " +\n      (offset < 0 ? "- " + Math.abs(offset) : "+ " + offset) +\n      "px)";\n    const marks = [\n',
+  ],
+  '    const steepest = pts.reduce((a, p, i) => (i > 0 && p.r.fee > a.r.fee ? p : a), pts[0]);\n    const endPoint = pts[pts.length - 1];\n    const annotationsCrowded =\n      W - steepest.x < 240 && Math.abs(steepest.y - endPoint.y) < 54;\n    const steepestLabelOffset = annotationsCrowded ? 18 : -26;\n    const endLabelOffset = annotationsCrowded ? -44 : -26;\n    const peakLabelTransform = annotationsCrowded\n      ? "translateX(-100%)"\n      : "translateX(-50%)";\n    const labelTop = (point, offset) =>\n      "calc(" +\n      ((point.y / H) * 100).toFixed(2) +\n      "% " +\n      (offset < 0 ? "- " + Math.abs(offset) : "+ " + offset) +\n      "px)";\n    const marks = [\n',
+  'adaptive annotation setup',
+);
+bundle = annotationSetupResult.bundle;
+changed ||= annotationSetupResult.changed;
+
+const steepestAnnotationResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        text: "steepest hour',
+    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-50%)",\n        text: "steepest hour',
+    '        labelTop: labelTop(steepest, steepestLabelOffset),\n        labelTransform: "translateX(-50%)",\n        text: "steepest hour',
+  ],
+  '        labelTop: labelTop(steepest, steepestLabelOffset),\n        labelTransform: peakLabelTransform,\n        text: "steepest hour',
+  'adaptive peak-hour annotation',
+);
+bundle = steepestAnnotationResult.bundle;
+changed ||= steepestAnnotationResult.changed;
+
+const endAnnotationResult = patchEmbeddedBlock(
+  bundle,
+  [
+    '        top: ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "%",\n        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        text: num(totalFee, 0) + " USDC",',
+    '        top: ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "%",\n        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-100%)",\n        text: num(totalFee, 0) + " USDC",',
+  ],
+  '        top: ((endPoint.y / H) * 100).toFixed(2) + "%",\n        labelTop: labelTop(endPoint, endLabelOffset),\n        labelTransform: "translateX(-100%)",\n        text: num(totalFee, 0) + " USDC",',
+  'adaptive cumulative-total annotation',
+);
+bundle = endAnnotationResult.bundle;
+changed ||= endAnnotationResult.changed;
+
+const recordMetricValuesResult = patchEmbeddedBlock(
+  bundle,
+  ['      kAvgFill: usd(totalFee / BPS / fills),\n'],
+  '      kAvgFill: usd(totalFee / BPS / fills),\n      kRecordDayFee: "$" + num(recordDay.fee, 0),\n      recordDayNote,\n      kLast24h: "$" + num(last24Fee, 0),\n      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",\n',
+  'record fee metric values',
+);
+bundle = recordMetricValuesResult.bundle;
+changed ||= recordMetricValuesResult.changed;
 
 const oldMethodNote =
   'Method \u2014 every USDC transfer received by the fee collector was read from Injective mainnet transaction events and bucketed by hour: {{ methodCount }}. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. The window begins where public archive nodes stop keeping a searchable transaction index; the wallet predates it.';
@@ -374,14 +443,6 @@ const textReplacements = [
   [
     '              <div style="position: absolute; left: {{ m.left }}; top: {{ m.labelTop }}; transform: translateX(-50%); pointer-events: none; text-align: center; animation: fadein 600ms ease-out both 1700ms">',
     '              <div style="position: absolute; left: {{ m.left }}; top: {{ m.labelTop }}; transform: {{ m.labelTransform }}; pointer-events: none; text-align: center; animation: fadein 600ms ease-out both 1700ms">',
-  ],
-  [
-    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        text: "steepest hour',
-    '        labelTop: "calc(" + ((steepest.y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-50%)",\n        text: "steepest hour',
-  ],
-  [
-    '        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        text: num(totalFee, 0) + " USDC",',
-    '        labelTop: "calc(" + ((pts[pts.length - 1].y / H) * 100).toFixed(2) + "% - 26px)",\n        labelTransform: "translateX(-100%)",\n        text: num(totalFee, 0) + " USDC",',
   ],
   [
     '    <div style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 16px">',
