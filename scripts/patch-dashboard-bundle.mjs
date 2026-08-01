@@ -3,6 +3,8 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import { calculateRolling24 } from '../lib/rolling-fees.js';
+
 const bundlePath = resolve('dist/index.html');
 const sourcePath = resolve('The RFQ Ledger.dc.html');
 const baseStyleBlock = `<style>
@@ -111,6 +113,10 @@ const hourlyDataBlock = `  loadFees = () => {
     clearInterval(this.balanceRefreshTimer);
   }
 `;
+const snapshotHourlyDataBlock = hourlyDataBlock.replace(
+  '      .then((j) => this.setState({ rows: j.rows }))\n',
+  '      .then((j) => this.setState({\n        rows: j.rows,\n        snapshotHour: j.snapshotAt.slice(0, 13),\n      }))\n',
+);
 
 const oldSummaryBlock = `        <div style="display: flex; flex-direction: column; gap: 2px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Fees collected</span>
@@ -152,7 +158,7 @@ const newSummaryBlock = `        <div style="display: flex; flex-direction: colu
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">4.0 bps</span>
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">flat on every fill</span>
         </div>`;
-const recordMetricsBlock = `
+const recordDayMetricsBlock = `
         <div style="display: flex; flex-direction: column; gap: 2px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record UTC day</span>
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecordDayFee }}</span>
@@ -163,7 +169,24 @@ const recordMetricsBlock = `
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kLast24h }}</span>
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ last24Note }}</span>
         </div>`;
-const sixCardSummaryBlock = newSummaryBlock + recordMetricsBlock;
+const rollingRecordMetricsBlock = `
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record 24h</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecord24h }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ record24Note }}</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 2px">
+          <div style="display: flex; align-items: center; gap: 8px; min-height: 13px">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Last 24h fees</span>
+            <sc-if value="{{ isNewRecord }}" hint-placeholder-val="{{ false }}">
+              <span class="new-record-indicator"><span class="new-record-dot"></span>new record</span>
+            </sc-if>
+          </div>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kLast24h }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ last24Note }}</span>
+        </div>`;
+const recordDaySummaryBlock = newSummaryBlock + recordDayMetricsBlock;
+const sixCardSummaryBlock = newSummaryBlock + rollingRecordMetricsBlock;
 
 const encodeForEmbeddedJson = (value) =>
   JSON.stringify(value).slice(1, -1).replaceAll('</', '<\\u002F');
@@ -188,7 +211,11 @@ function patchEmbeddedBlock(bundle, candidates, replacement, description) {
 }
 
 const sourcePage = await readFile(sourcePath, 'utf8');
-const responsiveStyleBlock = sourcePage.match(/<style>[\s\S]*?<\/style>/)?.[0];
+const sourceStyleBlocks = [
+  ...sourcePage.matchAll(/<style>[\s\S]*?<\/style>/g),
+].map((match) => match[0]);
+const responsiveStyleBlock = sourceStyleBlocks[0];
+const recordStateStyleBlock = sourceStyleBlocks[1];
 const mobileHeatmapStart = sourcePage.indexOf(
   '      <p class="mobile-swipe-hint">',
 );
@@ -198,6 +225,7 @@ const mobileHeatmapEnd = sourcePage.indexOf(
 );
 if (
   !responsiveStyleBlock ||
+  !recordStateStyleBlock ||
   mobileHeatmapStart === -1 ||
   mobileHeatmapEnd === -1
 ) {
@@ -213,8 +241,8 @@ let changed = false;
 
 const dataResult = patchEmbeddedBlock(
   bundle,
-  [cachedDataBlock, staticDataBlock],
-  hourlyDataBlock,
+  [hourlyDataBlock, cachedDataBlock, staticDataBlock],
+  snapshotHourlyDataBlock,
   'dashboard data loader',
 );
 bundle = dataResult.bundle;
@@ -222,7 +250,7 @@ changed ||= dataResult.changed;
 
 const summaryResult = patchEmbeddedBlock(
   bundle,
-  [oldSummaryBlock, newSummaryBlock],
+  [recordDaySummaryBlock, oldSummaryBlock, newSummaryBlock],
   sixCardSummaryBlock,
   'dashboard summary',
 );
@@ -263,6 +291,21 @@ const formatterResult = patchEmbeddedBlock(
 bundle = formatterResult.bundle;
 changed ||= formatterResult.changed;
 
+const hourLabelFunction =
+  'function hourLabel(k) { return dayLabel(k) + " " + k.slice(11, 13) + ":00"; }\n';
+const rollingMetricFunctions =
+  `${calculateRolling24.toString()}\n` +
+  hourLabelFunction +
+  'function hourEndLabel(k) { return dayLabel(k) + " " + k.slice(11, 13) + ":59"; }\n';
+const rollingFunctionResult = patchEmbeddedBlock(
+  bundle,
+  [hourLabelFunction],
+  rollingMetricFunctions,
+  'rolling 24h metric function',
+);
+bundle = rollingFunctionResult.bundle;
+changed ||= rollingFunctionResult.changed;
+
 const heroValueLine =
   '      heroVolume: volumeWords(totalFee / BPS),\n';
 const encodedHeroValueLine = encodeForEmbeddedJson(heroValueLine);
@@ -287,10 +330,12 @@ changed ||= heroValueResult.changed;
 const recordMetricsResult = patchEmbeddedBlock(
   bundle,
   [
+    '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n    const latestRow = rows[rows.length - 1];\n    const rolling24 = calculateRolling24(rows);\n    const record24End = rolling24.isNewRecord\n      ? hourLabel(rolling24.recordEndKey) + " UTC · live"\n      : hourEndLabel(rolling24.recordEndKey) + " UTC";\n    const record24Note =\n      hourLabel(rolling24.recordStartKey) + " → " + record24End;\n',
+    '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n    const recordDay = dayKeys.reduce(\n      (best, day) => (byDay[day].fee > best.fee ? byDay[day] : best),\n      byDay[dayKeys[0]]\n    );\n    const latestRow = rows[rows.length - 1];\n    const latestDay = latestRow.key.slice(0, 10);\n    const recordDayNote = recordDay.key.slice(0, 10) === latestDay\n      ? dayLabel(recordDay.key) + " UTC · partial through " + latestRow.key.slice(11, 13) + ":00"\n      : dayLabel(recordDay.key) + " · 00:00–23:59 UTC";\n    const lastHourMs = Date.parse(latestRow.key + ":00:00Z");\n    const last24Start = lastHourMs - 23 * 60 * 60 * 1000;\n    const last24Fee = rows.reduce(\n      (sum, r) => Date.parse(r.key + ":00:00Z") >= last24Start ? sum + r.fee : sum,\n      0\n    );\n',
     '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n',
   ],
-  '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n    const recordDay = dayKeys.reduce(\n      (best, day) => (byDay[day].fee > best.fee ? byDay[day] : best),\n      byDay[dayKeys[0]]\n    );\n    const latestRow = rows[rows.length - 1];\n    const latestDay = latestRow.key.slice(0, 10);\n    const recordDayNote = recordDay.key.slice(0, 10) === latestDay\n      ? dayLabel(recordDay.key) + " UTC · partial through " + latestRow.key.slice(11, 13) + ":00"\n      : dayLabel(recordDay.key) + " · 00:00–23:59 UTC";\n    const lastHourMs = Date.parse(latestRow.key + ":00:00Z");\n    const last24Start = lastHourMs - 23 * 60 * 60 * 1000;\n    const last24Fee = rows.reduce(\n      (sum, r) => Date.parse(r.key + ":00:00Z") >= last24Start ? sum + r.fee : sum,\n      0\n    );\n',
-  'record fee metrics',
+  '    const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);\n    const latestRow = rows[rows.length - 1];\n    const currentHourKey = this.state.snapshotHour || latestRow.key;\n    const rolling24 = calculateRolling24(rows, currentHourKey);\n    const record24End = rolling24.isNewRecord\n      ? hourLabel(rolling24.recordEndKey) + " UTC · live"\n      : hourEndLabel(rolling24.recordEndKey) + " UTC";\n    const record24Note =\n      hourLabel(rolling24.recordStartKey) + " → " + record24End;\n',
+  'rolling record fee metrics',
 );
 bundle = recordMetricsResult.bundle;
 changed ||= recordMetricsResult.changed;
@@ -334,9 +379,13 @@ changed ||= endAnnotationResult.changed;
 
 const recordMetricValuesResult = patchEmbeddedBlock(
   bundle,
-  ['      kAvgFill: usd(totalFee / BPS / fills),\n'],
-  '      kAvgFill: usd(totalFee / BPS / fills),\n      kRecordDayFee: "$" + num(recordDay.fee, 0),\n      recordDayNote,\n      kLast24h: "$" + num(last24Fee, 0),\n      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",\n',
-  'record fee metric values',
+  [
+    '      kAvgFill: usd(totalFee / BPS / fills),\n      kRecord24h: "$" + num(rolling24.recordFee, 0),\n      record24Note,\n      kLast24h: "$" + num(rolling24.currentFee, 0),\n      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",\n      isNewRecord: rolling24.isNewRecord,\n',
+    '      kAvgFill: usd(totalFee / BPS / fills),\n      kRecordDayFee: "$" + num(recordDay.fee, 0),\n      recordDayNote,\n      kLast24h: "$" + num(last24Fee, 0),\n      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",\n',
+    '      kAvgFill: usd(totalFee / BPS / fills),\n',
+  ],
+  '      kAvgFill: usd(totalFee / BPS / fills),\n      kRecord24h: "$" + num(rolling24.recordFee, 0),\n      record24Note,\n      kLast24h: "$" + num(rolling24.currentFee, 0),\n      last24Note: "rolling 24h · through " + hourLabel(currentHourKey) + " UTC",\n      isNewRecord: rolling24.isNewRecord,\n',
+  'rolling record fee metric values',
 );
 bundle = recordMetricValuesResult.bundle;
 changed ||= recordMetricValuesResult.changed;
@@ -353,6 +402,15 @@ const methodResult = patchEmbeddedBlock(
 );
 bundle = methodResult.bundle;
 changed ||= methodResult.changed;
+
+const recordStateStyleResult = patchEmbeddedBlock(
+  bundle,
+  ['</style>\n</helmet>'],
+  `</style>\n${recordStateStyleBlock}\n</helmet>`,
+  'new-record indicator styles',
+);
+bundle = recordStateStyleResult.bundle;
+changed ||= recordStateStyleResult.changed;
 
 const styleResult = patchEmbeddedBlock(
   bundle,

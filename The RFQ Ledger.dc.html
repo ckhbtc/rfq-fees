@@ -90,6 +90,35 @@
     .metrics-grid { gap: 16px 12px !important; }
   }
 </style>
+<style>
+  @keyframes record-pulse {
+    0%, 100% { opacity: 0.5; transform: scale(0.78); }
+    50% { opacity: 1; transform: scale(1); }
+  }
+  .new-record-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: oklch(0.5 0.19 25);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8.5px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .new-record-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: oklch(0.5 0.19 25);
+    box-shadow: 0 0 0 3px oklch(0.5 0.19 25 / 0.12);
+    animation: record-pulse 1.4s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .new-record-dot { animation: none; }
+  }
+</style>
 </helmet>
 <div class="page-frame" style="background: oklch(0.965 0.008 85); color: oklch(0.22 0.012 60); font-family: 'IBM Plex Sans', system-ui, sans-serif; min-height: 100vh; padding: 44px 32px 72px; display: flex; justify-content: center">
   <div class="page-shell" style="width: 100%; max-width: 1120px; display: flex; flex-direction: column">
@@ -125,12 +154,17 @@
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">flat on every fill</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 2px">
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record UTC day</span>
-          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecordDayFee }}</span>
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ recordDayNote }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Record 24h</span>
+          <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05; color: oklch(0.5 0.19 25)">{{ kRecord24h }}</span>
+          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ record24Note }}</span>
         </div>
         <div style="display: flex; flex-direction: column; gap: 2px">
-          <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Last 24h fees</span>
+          <div style="display: flex; align-items: center; gap: 8px; min-height: 13px">
+            <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Last 24h fees</span>
+            <sc-if value="{{ isNewRecord }}" hint-placeholder-val="{{ false }}">
+              <span class="new-record-indicator"><span class="new-record-dot"></span>new record</span>
+            </sc-if>
+          </div>
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kLast24h }}</span>
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: oklch(0.55 0.012 60)">{{ last24Note }}</span>
         </div>
@@ -281,8 +315,79 @@ function volumeWords(value) {
   if (value >= 1e3) return wholeNumberWords(value / 1e3) + " thousand dollars";
   return wholeNumberWords(value) + " dollars";
 }
+function calculateRolling24(rows, currentHourKey) {
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return null;
+  }
+
+  const HOUR_MS = 60 * 60 * 1000;
+  const FEE_EPSILON = 0.000001;
+  let startIndex = 0;
+  let windowFee = 0;
+  let record = null;
+  let previousRecord = null;
+  const latestHourKey = rows[rows.length - 1].key;
+  const effectiveCurrentHourKey =
+    typeof currentHourKey === "string" && currentHourKey > latestHourKey
+      ? currentHourKey
+      : latestHourKey;
+
+  for (let endIndex = 0; endIndex < rows.length; endIndex += 1) {
+    const endRow = rows[endIndex];
+    const endMs = Date.parse(endRow.key + ":00:00Z");
+    const startMs = endMs - 23 * HOUR_MS;
+    windowFee += endRow.fee;
+
+    while (
+      startIndex <= endIndex &&
+      Date.parse(rows[startIndex].key + ":00:00Z") < startMs
+    ) {
+      windowFee -= rows[startIndex].fee;
+      startIndex += 1;
+    }
+
+    const candidate = {
+      fee: windowFee,
+      startKey: new Date(startMs).toISOString().slice(0, 13),
+      endKey: endRow.key,
+    };
+
+    if (!record || candidate.fee > record.fee) record = candidate;
+    if (
+      endRow.key < effectiveCurrentHourKey &&
+      (!previousRecord || candidate.fee > previousRecord.fee)
+    ) previousRecord = candidate;
+  }
+
+  const currentEndMs = Date.parse(effectiveCurrentHourKey + ":00:00Z");
+  const currentStartMs = currentEndMs - 23 * HOUR_MS;
+  const currentFee = rows.reduce((sum, row) => {
+    const rowMs = Date.parse(row.key + ":00:00Z");
+    return rowMs >= currentStartMs && rowMs <= currentEndMs
+      ? sum + row.fee
+      : sum;
+  }, 0);
+  const current = {
+    fee: currentFee,
+    startKey: new Date(currentStartMs).toISOString().slice(0, 13),
+    endKey: effectiveCurrentHourKey,
+  };
+  if (current.fee > record.fee) record = current;
+
+  return {
+    currentFee: current.fee,
+    previousRecordFee: previousRecord ? previousRecord.fee : current.fee,
+    recordFee: record.fee,
+    recordStartKey: record.startKey,
+    recordEndKey: record.endKey,
+    isNewRecord: Boolean(
+      previousRecord && current.fee > previousRecord.fee + FEE_EPSILON
+    ),
+  };
+}
 function dayLabel(k) { return MON[+k.slice(5, 7) - 1] + " " + +k.slice(8, 10); }
 function hourLabel(k) { return dayLabel(k) + " " + k.slice(11, 13) + ":00"; }
+function hourEndLabel(k) { return dayLabel(k) + " " + k.slice(11, 13) + ":59"; }
 function heat(t) {
   if (t <= 0) return "oklch(0.955 0.006 85)";
   const e = Math.pow(t, 0.45);
@@ -298,7 +403,10 @@ class Component extends DCLogic {
         if (!r.ok) throw new Error("fee cache unavailable");
         return r.json();
       })
-      .then((j) => this.setState({ rows: j.rows }))
+      .then((j) => this.setState({
+        rows: j.rows,
+        snapshotHour: j.snapshotAt.slice(0, 13),
+      }))
       .catch(() => {
         if (!this.state.rows) {
           import("./fee-data.js").then((m) =>
@@ -362,21 +470,14 @@ class Component extends DCLogic {
     const totalFee = rows.reduce((a, r) => a + r.fee, 0);
     const fills = rows.reduce((a, r) => a + r.n, 0);
     const biggest = rows.reduce((a, r) => (r.max > a.max ? r : a), rows[0]);
-    const recordDay = dayKeys.reduce(
-      (best, day) => (byDay[day].fee > best.fee ? byDay[day] : best),
-      byDay[dayKeys[0]]
-    );
     const latestRow = rows[rows.length - 1];
-    const latestDay = latestRow.key.slice(0, 10);
-    const recordDayNote = recordDay.key.slice(0, 10) === latestDay
-      ? dayLabel(recordDay.key) + " UTC · partial through " + latestRow.key.slice(11, 13) + ":00"
-      : dayLabel(recordDay.key) + " · 00:00–23:59 UTC";
-    const lastHourMs = Date.parse(latestRow.key + ":00:00Z");
-    const last24Start = lastHourMs - 23 * 60 * 60 * 1000;
-    const last24Fee = rows.reduce(
-      (sum, r) => Date.parse(r.key + ":00:00Z") >= last24Start ? sum + r.fee : sum,
-      0
-    );
+    const currentHourKey = this.state.snapshotHour || latestRow.key;
+    const rolling24 = calculateRolling24(rows, currentHourKey);
+    const record24End = rolling24.isNewRecord
+      ? hourLabel(rolling24.recordEndKey) + " UTC · live"
+      : hourEndLabel(rolling24.recordEndKey) + " UTC";
+    const record24Note =
+      hourLabel(rolling24.recordStartKey) + " → " + record24End;
 
     // ---- Fig 1: cumulative curve ----
     const W = 1000, H = 250;
@@ -483,10 +584,11 @@ class Component extends DCLogic {
       kVol: usd(totalFee / BPS),
       kFills: fills.toLocaleString("en-US"),
       kAvgFill: usd(totalFee / BPS / fills),
-      kRecordDayFee: "$" + num(recordDay.fee, 0),
-      recordDayNote,
-      kLast24h: "$" + num(last24Fee, 0),
-      last24Note: "rolling 24h · through " + hourLabel(latestRow.key) + " UTC",
+      kRecord24h: "$" + num(rolling24.recordFee, 0),
+      record24Note,
+      kLast24h: "$" + num(rolling24.currentFee, 0),
+      last24Note: "rolling 24h · through " + hourLabel(currentHourKey) + " UTC",
+      isNewRecord: rolling24.isNewRecord,
       rangeLabel: hourLabel(rows[0].key) + " → " + hourLabel(rows[rows.length - 1].key) + " UTC",
       bigFee: num(biggest.max, 2),
       bigVol: usd(biggest.max / BPS),
