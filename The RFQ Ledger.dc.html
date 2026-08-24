@@ -35,7 +35,7 @@
     .masthead-source { font-size: 9px !important; letter-spacing: 0.08em !important; line-height: 1.6; }
     .hero-layout { grid-template-columns: 1fr !important; gap: 24px !important; padding: 24px 0 !important; }
     .hero-title { font-size: 50px !important; line-height: 0.92 !important; }
-    .metrics-grid { padding-top: 0 !important; gap: 18px 16px !important; }
+    .metrics-grid { grid-template-columns: 1fr 1fr !important; padding-top: 0 !important; gap: 18px 16px !important; }
     .figure-section { padding: 26px 0 24px !important; }
     .figure-section > div:first-child {
       align-items: flex-start !important;
@@ -130,9 +130,9 @@
 
     <div class="hero-layout" style="display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 40px; padding: 30px 0 26px; border-bottom: 1px solid oklch(0.82 0.012 60); align-items: start">
       <div style="display: flex; flex-direction: column; gap: 12px">
-        <h1 class="hero-title" style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 76px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points, <em style="font-style: italic; color: oklch(0.5 0.19 25)">{{ heroVolume }}</em></h1>
+        <h1 class="hero-title" style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-size: 68px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points, <em style="font-style: italic; color: oklch(0.5 0.19 25)">{{ heroVolume }}</em></h1>
       </div>
-      <div class="metrics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">
+      <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 26px; padding-top: 8px">
         <div style="display: flex; flex-direction: column; gap: 2px">
           <span style="font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: oklch(0.55 0.012 60)">Total balance</span>
           <span style="font-family: 'Instrument Serif', serif; font-size: 34px; line-height: 1.05">{{ kBal }}</span>

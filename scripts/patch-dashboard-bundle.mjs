@@ -216,6 +216,10 @@ const sourceStyleBlocks = [
 ].map((match) => match[0]);
 const responsiveStyleBlock = sourceStyleBlocks[0];
 const recordStateStyleBlock = sourceStyleBlocks[1];
+const previousResponsiveStyleBlock = responsiveStyleBlock.replace(
+  '    .metrics-grid { grid-template-columns: 1fr 1fr !important; padding-top: 0 !important; gap: 18px 16px !important; }',
+  '    .metrics-grid { padding-top: 0 !important; gap: 18px 16px !important; }',
+);
 const mobileHeatmapStart = sourcePage.indexOf(
   '      <p class="mobile-swipe-hint">',
 );
@@ -414,7 +418,7 @@ changed ||= recordStateStyleResult.changed;
 
 const styleResult = patchEmbeddedBlock(
   bundle,
-  [baseStyleBlock],
+  [previousResponsiveStyleBlock, baseStyleBlock],
   responsiveStyleBlock,
   'responsive dashboard styles',
 );
@@ -483,8 +487,16 @@ const textReplacements = [
     '        <h1 class="hero-title" style="margin: 0; font-family: \'Instrument Serif\', Georgia, serif;',
   ],
   [
-    '      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">',
+    'font-size: 76px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points,',
+    'font-size: 68px; line-height: 0.92; font-weight: 400; letter-spacing: -0.015em; text-wrap: balance">Four basis points,',
+  ],
+  [
     '      <div class="metrics-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">',
+    '      <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 26px; padding-top: 8px">',
+  ],
+  [
+    '      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 22px 26px; padding-top: 8px">',
+    '      <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px 26px; padding-top: 8px">',
   ],
   [
     '    <div style="padding: 34px 0 30px; border-bottom: 1px solid oklch(0.82 0.012 60); display: flex; flex-direction: column; gap: 18px">',
