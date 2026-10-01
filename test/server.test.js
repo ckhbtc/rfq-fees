@@ -68,6 +68,21 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.doesNotMatch(html, /Bundled Page/);
 });
 
+test('ships light and dark themes with the serif and Plex type', async () => {
+  const html = await (await fetch(`${baseUrl}/`)).text();
+
+  assert.match(html, /class=\\"page\\" data-theme=\\"\{\{ theme \}\}\\"/);
+  assert.match(html, /\.page\[data-theme=\\"light\\"\]/);
+  assert.match(html, /\.page\[data-theme=\\"dark\\"\]/);
+  assert.match(html, /rfq-ledger-theme/);
+  assert.match(html, /prefers-color-scheme: light/);
+  assert.match(html, /aria-label=\\"\{\{ themeLabel \}\}\\"/);
+  assert.match(html, /family=Instrument\+Serif/);
+  assert.match(html, /family=IBM\+Plex\+Sans/);
+  assert.match(html, /family=IBM\+Plex\+Mono/);
+  assert.doesNotMatch(html, /Geist/);
+});
+
 test('reports service health', async () => {
   const response = await fetch(`${baseUrl}/health`);
 

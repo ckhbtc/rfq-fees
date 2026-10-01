@@ -4,7 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="Daily and hourly fees collected by the Injective RFQ fee collector.">
-<meta name="theme-color" content="#0A0F1C">
+<meta name="theme-color" content="#0A0F1C" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F4F6FA" media="(prefers-color-scheme: light)">
 <title>RFQ Ledger · Injective RFQ fees</title>
 <script src="./support.js"></script>
 </head>
@@ -13,13 +14,34 @@
 <helmet>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&amp;family=IBM+Plex+Mono:wght@400;500;600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;display=swap" rel="stylesheet">
 <style>
-body { margin: 0; background: #0A0F1C; }
+body { margin: 0; background: #0A0F1C; color-scheme: dark; }
+body:has(.page[data-theme="light"]) { background: #F4F6FA; color-scheme: light; }
 * { box-sizing: border-box; }
-a { color: #5FE1F5; text-decoration: none; }
-a:hover { color: #B9F1FA; }
-button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
+.page[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0A0F1C; --panel: #0E1526; --sunk: #0A0F1C; --line: #1D2842; --line-strong: #2A3858; --grid: #18223A;
+  --ink: #E8EEF8; --ink-strong: #F2F6FC; --ink2: #A6B3CA; --ink3: #7887A4; --label: #8D9BB5; --cents: #56647F;
+  --accent: #5FE1F5; --accent-hover: #B9F1FA; --avg-line: #B9F1FA;
+  --bar: #3D8BFF; --bar-hover: #9CC8FF; --bar-soft: rgba(61, 139, 255, 0.28); --col-hover: rgba(156, 200, 255, 0.09);
+  --record: #FFB547; --record-text: #FFB547; --record-line: #5C4320; --pill-line: #1E4A5E;
+  --seg-on: #22304F; --seg-shadow: none; --track: #131B30; --profile: #33507F; --zero: #24304D;
+  --heat-zero: #141D33; --hatch-line: #1C2742;
+}
+.page[data-theme="light"] {
+  color-scheme: light;
+  --bg: #F4F6FA; --panel: #FFFFFF; --sunk: #EEF1F6; --line: #DDE3EC; --line-strong: #C3CCDA; --grid: #EDF0F5;
+  --ink: #0E1526; --ink-strong: #0A0F1C; --ink2: #44516A; --ink3: #5F6C85; --label: #55627A; --cents: #8792A6;
+  --accent: #0A6E91; --accent-hover: #064F69; --avg-line: #0B2A55;
+  --bar: #2F6FE0; --bar-hover: #86AEF2; --bar-soft: rgba(47, 111, 224, 0.22); --col-hover: rgba(47, 111, 224, 0.08);
+  --record: #F0A030; --record-text: #A15C00; --record-line: #F1CF97; --pill-line: #A9D6E5;
+  --seg-on: #FFFFFF; --seg-shadow: 0 1px 2px rgba(14, 21, 38, 0.14); --track: #EEF2F7; --profile: #A9BEE0; --zero: #D9E0EB;
+  --heat-zero: #EEF2F7; --hatch-line: #D3DAE6;
+}
+a { color: var(--accent); text-decoration: none; }
+a:hover { color: var(--accent-hover); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @keyframes live-pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
 .live-dot { animation: live-pulse 2.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
@@ -29,7 +51,9 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
 }
 @media (max-width: 760px) {
   .page { padding: 18px 16px 56px !important; }
-  .hero-number { font-size: 56px !important; }
+  .hero-number { font-size: 60px !important; }
+  .masthead-meta { order: 3; flex-basis: 100%; margin-left: 0 !important; }
+  .theme-toggle { order: 2; margin-left: auto; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
   .panel { padding: 18px 14px !important; border-radius: 12px !important; }
   .summary { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
@@ -41,107 +65,115 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
 }
 </style>
 </helmet>
-<div class="page" style="min-height: 100vh; background: #0A0F1C; color: #E8EEF8; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif; padding: 28px 40px 72px; display: flex; justify-content: center">
+<div class="page" data-theme="{{ theme }}" style="min-height: 100vh; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans', system-ui, sans-serif; padding: 28px 40px 72px; display: flex; justify-content: center">
 <div style="width: 100%; max-width: 1200px; display: flex; flex-direction: column; gap: 28px">
 
-<header style="display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; padding-bottom: 20px; border-bottom: 1px solid #1D2842">
+<header style="display: flex; align-items: center; gap: 14px 20px; flex-wrap: wrap; padding-bottom: 20px; border-bottom: 1px solid var(--line)">
   <div style="display: flex; align-items: center; gap: 12px">
-    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="12" width="4" height="8" rx="1" fill="#3D8BFF"></rect><rect x="9" y="7" width="4" height="13" rx="1" fill="#3D8BFF"></rect><rect x="16" y="2" width="4" height="18" rx="1" fill="#FFB547"></rect></svg>
-    <span style="font-size: 16px; font-weight: 600; letter-spacing: -0.01em">RFQ Ledger</span>
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: #A6B3CA; padding: 4px 9px; border: 1px solid #1D2842; border-radius: 999px">Injective mainnet</span>
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="2" y="12" width="4" height="8" rx="1" style="fill: var(--bar)"></rect><rect x="9" y="7" width="4" height="13" rx="1" style="fill: var(--bar)"></rect><rect x="16" y="2" width="4" height="18" rx="1" style="fill: var(--record)"></rect></svg>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; font-weight: 600; letter-spacing: 0.24em; text-transform: uppercase">RFQ Ledger</span>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink2); padding: 4px 9px; border: 1px solid var(--line); border-radius: 999px">Injective mainnet</span>
   </div>
-  <div style="display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #A6B3CA">
+  <div class="masthead-meta" style="display: flex; align-items: center; gap: 10px 22px; flex-wrap: wrap; margin-left: auto; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink2)">
     <span>Fee collector <a href="https://injscan.com/account/inj1ehxcakmxm8a0qrm690yckmdw4fk0fmzyc94ngf/" target="_blank" rel="noreferrer">inj1ehx…c94ngf ↗</a></span>
-    <span style="display: inline-flex; align-items: center; gap: 8px"><span class="live-dot" style="width: 7px; height: 7px; border-radius: 50%; background: #5FE1F5"></span>{{ syncedLabel }} · refreshes hourly</span>
+    <span style="display: inline-flex; align-items: center; gap: 8px"><span class="live-dot" style="width: 7px; height: 7px; border-radius: 50%; background: var(--accent)"></span>{{ syncedLabel }} · refreshes hourly</span>
   </div>
+  <button class="theme-toggle" type="button" onClick="{{ toggleTheme }}" aria-label="{{ themeLabel }}" title="{{ themeLabel }}" style="display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); color: var(--ink2); cursor: pointer">
+    <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+    </sc-if>
+    <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>
+    </sc-if>
+  </button>
 </header>
 
 <section class="hero" style="display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 32px 40px; align-items: stretch">
   <div style="display: flex; flex-direction: column; justify-content: space-between; gap: 28px; padding: 6px 0 4px">
     <div style="display: flex; flex-direction: column; gap: 16px">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Fees collected since {{ sinceLabel }}</span>
-      <div class="hero-number" style="font-size: 80px; font-weight: 500; letter-spacing: -0.045em; line-height: 0.92; font-variant-numeric: tabular-nums">{{ heroWhole }}<span style="color: #56647F">{{ heroCents }}</span></div>
-      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: #A6B3CA; max-width: 42ch">Four basis points on <span style="color: #E8EEF8; font-weight: 500">{{ kNotional }}</span> of RFQ notional, across <span style="color: #E8EEF8; font-weight: 500">{{ heroFills }}</span> fills.</p>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Fees collected since {{ sinceLabel }}</span>
+      <div class="hero-number" style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 104px; letter-spacing: -0.02em; line-height: 0.9; font-variant-numeric: tabular-nums">{{ heroWhole }}<span style="color: var(--cents)">{{ heroCents }}</span></div>
+      <p style="margin: 0; font-size: 17px; line-height: 1.55; color: var(--ink2); max-width: 42ch">Four basis points on <span style="color: var(--ink); font-weight: 500">{{ kNotional }}</span> of RFQ notional, across <span style="color: var(--ink); font-weight: 500">{{ heroFills }}</span> fills.</p>
     </div>
-    <div style="display: flex; gap: 14px 32px; flex-wrap: wrap; padding-top: 18px; border-top: 1px solid #1D2842">
+    <div style="display: flex; gap: 14px 32px; flex-wrap: wrap; padding-top: 18px; border-top: 1px solid var(--line)">
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #7887A4">Fee rate</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 15px">4.0 bps, flat</span>
+        <span style="font-size: 12px; color: var(--ink3)">Fee rate</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px">4.0 bps, flat</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #7887A4">Average fill</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 15px">{{ avgFill }}</span>
+        <span style="font-size: 12px; color: var(--ink3)">Average fill</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px">{{ avgFill }}</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #7887A4">Days tracked</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 15px">{{ daysTracked }}</span>
+        <span style="font-size: 12px; color: var(--ink3)">Days tracked</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px">{{ daysTracked }}</span>
       </div>
     </div>
   </div>
 
-  <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #1D2842; border: 1px solid #1D2842; border-radius: 14px; overflow: hidden">
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Today so far</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kToday }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ todayNote }}</span>
+  <div class="kpi-grid" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden">
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Today so far</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kToday }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ todayNote }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Yesterday</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kYday }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ ydayNote }}</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Yesterday</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kYday }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ ydayNote }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">7-day average</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kWeek }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ weekNote }}</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">7-day average</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kWeek }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ weekNote }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Record day</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #FFB547">{{ kRecordDay }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ recordDayNote }}</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Record day</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; color: var(--record-text)">{{ kRecordDay }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ recordDayNote }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
       <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
-        <span style="font-size: 12.5px; color: #8D9BB5">Last 24 hours</span>
+        <span style="font-size: 12.5px; color: var(--label)">Last 24 hours</span>
         <sc-if value="{{ isNew24 }}" hint-placeholder-val="{{ false }}">
-          <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #FFB547; padding: 2px 6px; border: 1px solid #5C4320; border-radius: 999px">new record</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: var(--record-text); padding: 2px 6px; border: 1px solid var(--record-line); border-radius: 999px">new record</span>
         </sc-if>
       </div>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kLast24 }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ last24Note }}</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kLast24 }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ last24Note }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Record 24 hours</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: #FFB547">{{ kRecord24 }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">{{ record24Note }}</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Record 24 hours</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums; color: var(--record-text)">{{ kRecord24 }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">{{ record24Note }}</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Notional traded</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kNotional }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">fees ÷ 0.0004, exact</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Notional traded</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kNotional }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">fees ÷ 0.0004, exact</span>
     </div>
-    <div style="background: #0E1526; padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
-      <span style="font-size: 12.5px; color: #8D9BB5">Collector balance</span>
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{ kBalance }}</span>
-      <span style="font-size: 12px; line-height: 1.4; color: #7887A4; margin-top: auto">USDC, read live from chain</span>
+    <div style="background: var(--panel); padding: 18px 18px 16px; display: flex; flex-direction: column; gap: 8px; min-height: 124px">
+      <span style="font-size: 12.5px; color: var(--label)">Collector balance</span>
+      <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1; letter-spacing: -0.005em; font-variant-numeric: tabular-nums">{{ kBalance }}</span>
+      <span style="font-size: 12px; line-height: 1.4; color: var(--ink3); margin-top: auto">USDC, read live from chain</span>
     </div>
   </div>
 </section>
 
-<section class="panel" style="background: #0E1526; border: 1px solid #1D2842; border-radius: 16px; padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 20px">
+<section class="panel" style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 20px">
   <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap">
     <div style="display: flex; flex-direction: column; gap: 8px">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Fig. 1 · Daily and hourly</span>
-      <h2 style="margin: 0; font-size: 26px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1">Every day, and every hour inside it</h2>
-      <span style="font-size: 13px; color: #8D9BB5">Bars are UTC-day totals. The grid below breaks each day into its 24 hours, column for column.</span>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Fig. 1 · Daily and hourly</span>
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; letter-spacing: -0.005em; line-height: 1">Every day, and every hour inside it</h2>
+      <span style="font-size: 13px; color: var(--label)">Bars are UTC-day totals. The grid below breaks each day into its 24 hours, column for column.</span>
     </div>
     <div style="display: flex; gap: 10px; flex-wrap: wrap">
-      <div role="group" aria-label="Date range" style="display: flex; gap: 2px; padding: 3px; background: #0A0F1C; border: 1px solid #1D2842; border-radius: 10px">
+      <div role="group" aria-label="Date range" style="display: flex; gap: 2px; padding: 3px; background: var(--sunk); border: 1px solid var(--line); border-radius: 10px">
         <sc-for list="{{ ranges }}" as="r" hint-placeholder-count="3">
           <button type="button" onClick="{{ r.pick }}" aria-pressed="{{ r.pressed }}" style="{{ r.style }}">{{ r.label }}</button>
         </sc-for>
       </div>
-      <div role="group" aria-label="Metric" style="display: flex; gap: 2px; padding: 3px; background: #0A0F1C; border: 1px solid #1D2842; border-radius: 10px">
+      <div role="group" aria-label="Metric" style="display: flex; gap: 2px; padding: 3px; background: var(--sunk); border: 1px solid var(--line); border-radius: 10px">
         <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="3">
           <button type="button" onClick="{{ m.pick }}" aria-pressed="{{ m.pressed }}" style="{{ m.style }}">{{ m.label }}</button>
         </sc-for>
@@ -149,19 +181,19 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
     </div>
   </div>
 
-  <div class="summary" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 24px; padding: 16px 0; border-top: 1px solid #1D2842; border-bottom: 1px solid #1D2842">
+  <div class="summary" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 24px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line)">
     <sc-for list="{{ summary }}" as="s" hint-placeholder-count="4">
       <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
-        <span style="font-size: 12px; color: #8D9BB5">{{ s.k }}</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 18px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.v }}</span>
-        <span style="font-size: 12px; color: #7887A4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.note }}</span>
+        <span style="font-size: 12px; color: var(--label)">{{ s.k }}</span>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.v }}</span>
+        <span style="font-size: 12px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.note }}</span>
       </div>
     </sc-for>
   </div>
 
   <div onMouseLeave="{{ clearHover }}" style="display: flex; flex-direction: column; padding-top: 30px">
     <div class="chart-row" style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 172px; gap: 0 16px">
-      <div style="height: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10.5px; color: #7887A4">
+      <div style="height: 200px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink3)">
         <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5">
           <span style="line-height: 0; white-space: nowrap">{{ t }}</span>
         </sc-for>
@@ -169,7 +201,7 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
       <div style="position: relative; height: 200px">
         <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none">
           <sc-for list="{{ yTicks }}" as="t" hint-placeholder-count="5">
-            <div style="height: 1px; background: #18223A"></div>
+            <div style="height: 1px; background: var(--grid)"></div>
           </sc-for>
         </div>
         <div style="position: absolute; inset: 0; display: flex; align-items: stretch; gap: {{ colGap }}">
@@ -181,30 +213,30 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
         </div>
         <sc-if value="{{ showAvg }}" hint-placeholder-val="{{ true }}">
           <svg viewBox="0 0 1000 200" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none">
-            <path d="{{ avgPath }}" fill="none" stroke="#0E1526" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>
-            <path d="{{ avgPath }}" fill="none" stroke="#B9F1FA" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>
+            <path d="{{ avgPath }}" fill="none" style="stroke: var(--panel)" stroke-width="4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>
+            <path d="{{ avgPath }}" fill="none" style="stroke: var(--avg-line)" stroke-width="1.75" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"></path>
           </svg>
         </sc-if>
         <sc-if value="{{ hasPeak }}" hint-placeholder-val="{{ false }}">
           <div style="position: absolute; left: {{ peakLeft }}; top: {{ peakTop }}; transform: {{ peakShift }}; pointer-events: none">
-            <span style="display: inline-block; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; line-height: 1.3; white-space: nowrap; color: #FFB547; background: #0E1526; border: 1px solid #5C4320; border-radius: 6px; padding: 3px 7px">{{ peakLabel }}</span>
+            <span style="display: inline-block; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; line-height: 1.3; white-space: nowrap; color: var(--record-text); background: var(--panel); border: 1px solid var(--record-line); border-radius: 6px; padding: 3px 7px">{{ peakLabel }}</span>
           </div>
         </sc-if>
       </div>
-      <div class="chart-side" style="display: flex; flex-direction: column; gap: 10px; padding-top: 2px; font-size: 12px; color: #A6B3CA">
-        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: #3D8BFF"></span>Daily {{ noun }}</span>
+      <div class="chart-side" style="display: flex; flex-direction: column; gap: 10px; padding-top: 2px; font-size: 12px; color: var(--ink2)">
+        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: var(--bar)"></span>Daily {{ noun }}</span>
         <sc-if value="{{ showAvg }}" hint-placeholder-val="{{ true }}">
-          <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 12px; height: 2px; border-radius: 1px; background: #B9F1FA"></span>7-day average</span>
+          <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 12px; height: 2px; border-radius: 1px; background: var(--avg-line)"></span>7-day average</span>
         </sc-if>
-        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: #FFB547"></span>Peak day in range</span>
-        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: repeating-linear-gradient(135deg, #3D8BFF 0 2px, rgba(61, 139, 255, 0.28) 2px 5px)"></span>Today, in progress</span>
+        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: var(--record)"></span>Peak day in range</span>
+        <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: repeating-linear-gradient(135deg, var(--bar) 0 2px, var(--bar-soft) 2px 5px)"></span>Today, in progress</span>
       </div>
     </div>
 
     <div class="chart-row" style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 172px; gap: 0 16px; margin-top: 14px">
       <div style="display: flex; flex-direction: column; gap: 1px">
         <sc-for list="{{ hourLabels }}" as="h" hint-placeholder-count="24">
-          <span style="height: 9px; line-height: 9px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #7887A4; text-align: right">{{ h }}</span>
+          <span style="height: 9px; line-height: 9px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: var(--ink3); text-align: right">{{ h }}</span>
         </sc-for>
       </div>
       <div style="display: flex; gap: {{ colGap }}">
@@ -219,39 +251,39 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
       <div class="chart-side" style="display: flex; flex-direction: column; gap: 1px">
         <sc-for list="{{ profile }}" as="p" hint-placeholder-count="24">
           <div style="height: 9px; display: flex; align-items: center; gap: 8px">
-            <div style="flex: 0 0 112px; height: 7px; position: relative; border-radius: 1px; background: #131B30">
+            <div style="flex: 0 0 112px; height: 7px; position: relative; border-radius: 1px; background: var(--track)">
               <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{ p.w }}; border-radius: 1px; background: {{ p.bg }}"></div>
             </div>
-            <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; line-height: 9px; color: #FFB547; white-space: nowrap">{{ p.label }}</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; line-height: 9px; color: var(--record-text); white-space: nowrap">{{ p.label }}</span>
           </div>
         </sc-for>
       </div>
     </div>
 
     <div class="chart-row" style="display: grid; grid-template-columns: 56px minmax(0, 1fr) 172px; gap: 0 16px; margin-top: 8px">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; line-height: 16px; color: #7887A4; text-align: right">UTC</span>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; line-height: 16px; color: var(--ink3); text-align: right">UTC</span>
       <div style="display: flex; gap: {{ colGap }}; height: 16px">
         <sc-for list="{{ xLabels }}" as="x" hint-placeholder-count="90">
           <div style="flex: 1 1 0; min-width: 0; position: relative">
             <sc-if value="{{ x.show }}" hint-placeholder-val="{{ false }}">
-              <span style="position: absolute; top: 0; left: {{ x.left }}; right: {{ x.right }}; padding: 0 4px; border-left: {{ x.bl }}; border-right: {{ x.br }}; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10.5px; line-height: 16px; color: #A6B3CA; white-space: nowrap">{{ x.text }}</span>
+              <span style="position: absolute; top: 0; left: {{ x.left }}; right: {{ x.right }}; padding: 0 4px; border-left: {{ x.bl }}; border-right: {{ x.br }}; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; line-height: 16px; color: var(--ink2); white-space: nowrap">{{ x.text }}</span>
             </sc-if>
           </div>
         </sc-for>
       </div>
-      <span class="chart-side" style="font-size: 11.5px; line-height: 16px; color: #7887A4">Avg {{ noun }} by hour</span>
+      <span class="chart-side" style="font-size: 11.5px; line-height: 16px; color: var(--ink3)">Avg {{ noun }} by hour</span>
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid #1D2842">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 14px 24px; flex-wrap: wrap; padding-top: 16px; border-top: 1px solid var(--line)">
     <div style="display: flex; align-items: baseline; gap: 6px 20px; flex-wrap: wrap; min-height: 22px">
-      <span style="font-size: 14px; font-weight: 600; color: #E8EEF8">{{ roTitle }}</span>
+      <span style="font-size: 14px; font-weight: 600; color: var(--ink)">{{ roTitle }}</span>
       <sc-for list="{{ roParts }}" as="p" hint-placeholder-count="5">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; color: #E8EEF8; white-space: nowrap"><span style="color: #7887A4">{{ p.k }}</span> {{ p.v }}</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--ink); white-space: nowrap"><span style="color: var(--ink3)">{{ p.k }}</span> {{ p.v }}</span>
       </sc-for>
-      <span style="font-size: 12px; color: #7887A4">{{ roHint }}</span>
+      <span style="font-size: 12px; color: var(--ink3)">{{ roHint }}</span>
     </div>
-    <div style="display: flex; align-items: center; gap: 8px; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: #7887A4">
+    <div style="display: flex; align-items: center; gap: 8px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink3)">
       <span>less</span>
       <div style="display: flex; gap: 2px">
         <sc-for list="{{ legend }}" as="l" hint-placeholder-count="7">
@@ -264,17 +296,17 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
 </section>
 
 <section class="split" style="display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: 20px; align-items: stretch">
-  <div class="panel" style="background: #0E1526; border: 1px solid #1D2842; border-radius: 16px; padding: 22px 22px 12px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
+  <div class="panel" style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 22px 12px; display: flex; flex-direction: column; gap: 14px; min-width: 0">
     <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 10px 16px; flex-wrap: wrap">
       <div style="display: flex; flex-direction: column; gap: 8px">
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Fig. 2 · Daily ledger</span>
-        <h2 style="margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1">Last ten days</h2>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Fig. 2 · Daily ledger</span>
+        <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; letter-spacing: -0.005em; line-height: 1">Last ten days</h2>
       </div>
-      <span style="font-size: 12px; color: #7887A4">UTC days, newest first · bars are each hour’s fees</span>
+      <span style="font-size: 12px; color: var(--ink3)">UTC days, newest first · bars are each hour’s fees</span>
     </div>
     <div class="ledger-scroll">
       <div class="ledger-grid" style="display: flex; flex-direction: column">
-        <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; padding: 0 0 8px; font-size: 11.5px; color: #7887A4">
+        <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; padding: 0 0 8px; font-size: 11.5px; color: var(--ink3)">
           <span>Day</span>
           <span style="text-align: right">Fees</span>
           <span style="text-align: right">vs 7d</span>
@@ -285,14 +317,14 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
           <span>By hour</span>
         </div>
         <sc-for list="{{ ledger }}" as="r" hint-placeholder-count="10">
-          <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid #18223A; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; color: #A6B3CA">
-            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; font-family: 'Geist', ui-sans-serif, system-ui, sans-serif">
-              <span style="font-size: 13.5px; color: #E8EEF8">{{ r.day }}</span>
+          <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--grid); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink2)">
+            <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; font-family: 'IBM Plex Sans', system-ui, sans-serif">
+              <span style="font-size: 13.5px; color: var(--ink)">{{ r.day }}</span>
               <sc-if value="{{ r.today }}" hint-placeholder-val="{{ false }}">
-                <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10px; color: #5FE1F5; padding: 2px 6px; border: 1px solid #1E4A5E; border-radius: 999px">so far</span>
+                <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: var(--accent); padding: 2px 6px; border: 1px solid var(--pill-line); border-radius: 999px">so far</span>
               </sc-if>
             </div>
-            <span style="text-align: right; color: #E8EEF8">{{ r.fees }}</span>
+            <span style="text-align: right; color: var(--ink)">{{ r.fees }}</span>
             <span style="text-align: right; color: {{ r.deltaColor }}">{{ r.delta }}</span>
             <span style="text-align: right">{{ r.notional }}</span>
             <span style="text-align: right">{{ r.fills }}</span>
@@ -309,13 +341,13 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
     </div>
   </div>
 
-  <div class="panel" style="background: #0E1526; border: 1px solid #1D2842; border-radius: 16px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0">
+  <div class="panel" style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px 22px 20px; display: flex; flex-direction: column; gap: 18px; min-width: 0">
     <div style="display: flex; flex-direction: column; gap: 8px">
-      <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Fig. 3 · Running total</span>
-      <h2 style="margin: 0; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; line-height: 1.1">Fees collected to date</h2>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Fig. 3 · Running total</span>
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 30px; letter-spacing: -0.005em; line-height: 1">Fees collected to date</h2>
     </div>
     <div style="display: flex; gap: 10px; padding-top: 26px; flex-grow: 1">
-      <div style="flex: 0 0 auto; height: 240px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10.5px; color: #7887A4">
+      <div style="flex: 0 0 auto; height: 240px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink3)">
         <sc-for list="{{ cumTicks }}" as="t" hint-placeholder-count="6">
           <span style="line-height: 0; white-space: nowrap">{{ t }}</span>
         </sc-for>
@@ -324,67 +356,67 @@ button:focus-visible { outline: 2px solid #5FE1F5; outline-offset: 2px; }
         <div style="position: relative; height: 240px">
           <div style="position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none">
             <sc-for list="{{ cumTicks }}" as="t" hint-placeholder-count="6">
-              <div style="height: 1px; background: #18223A"></div>
+              <div style="height: 1px; background: var(--grid)"></div>
             </sc-for>
           </div>
           <svg viewBox="0 0 1000 240" preserveAspectRatio="none" aria-hidden="true" style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible">
-            <path d="{{ cumArea }}" fill="#3D8BFF" fill-opacity="0.16"></path>
-            <path d="{{ cumPath }}" fill="none" stroke="#5FE1F5" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
+            <path d="{{ cumArea }}" style="fill: var(--bar); fill-opacity: 0.16"></path>
+            <path d="{{ cumPath }}" fill="none" style="stroke: var(--accent)" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linejoin="round"></path>
           </svg>
           <sc-if value="{{ hasCum }}" hint-placeholder-val="{{ false }}">
-            <div style="position: absolute; left: {{ recLeft }}; top: {{ recTop }}; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: #FFB547; box-shadow: 0 0 0 3px #0E1526"></div>
-            <span style="position: absolute; left: {{ recLeft }}; top: {{ recTop }}; transform: {{ recShift }}; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; color: #FFB547; white-space: nowrap; background: #0E1526; padding: 2px 4px">{{ recLabel }}</span>
-            <span style="position: absolute; left: 100%; top: {{ endTop }}; transform: translate(-100%, calc(-100% - 10px)); font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; color: #E8EEF8; white-space: nowrap">{{ endLabel }}</span>
+            <div style="position: absolute; left: {{ recLeft }}; top: {{ recTop }}; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--record); box-shadow: 0 0 0 3px var(--panel)"></div>
+            <span style="position: absolute; left: {{ recLeft }}; top: {{ recTop }}; transform: {{ recShift }}; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; color: var(--record-text); white-space: nowrap; background: var(--panel); padding: 2px 4px">{{ recLabel }}</span>
+            <span style="position: absolute; left: 100%; top: {{ endTop }}; transform: translate(-100%, calc(-100% - 10px)); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; color: var(--ink); white-space: nowrap">{{ endLabel }}</span>
           </sc-if>
         </div>
         <div style="position: relative; height: 16px">
           <sc-for list="{{ cumX }}" as="x" hint-placeholder-count="6">
-            <span style="position: absolute; top: 0; left: {{ x.left }}; transform: {{ x.tx }}; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 10.5px; line-height: 16px; color: #A6B3CA; white-space: nowrap">{{ x.text }}</span>
+            <span style="position: absolute; top: 0; left: {{ x.left }}; transform: {{ x.tx }}; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; line-height: 16px; color: var(--ink2); white-space: nowrap">{{ x.text }}</span>
           </sc-for>
         </div>
       </div>
     </div>
-    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 16px; border-top: 1px solid #1D2842">
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; padding-top: 16px; border-top: 1px solid var(--line)">
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #8D9BB5">Median day</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 16px; font-variant-numeric: tabular-nums">{{ medianDay }}</span>
+        <span style="font-size: 12px; color: var(--label)">Median day</span>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.05; font-variant-numeric: tabular-nums">{{ medianDay }}</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #8D9BB5">Days over $1,000</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 16px; font-variant-numeric: tabular-nums">{{ bigDays }}</span>
+        <span style="font-size: 12px; color: var(--label)">Days over $1,000</span>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.05; font-variant-numeric: tabular-nums">{{ bigDays }}</span>
       </div>
       <div style="display: flex; flex-direction: column; gap: 4px">
-        <span style="font-size: 12px; color: #8D9BB5">Last 30 days</span>
-        <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 16px; font-variant-numeric: tabular-nums">{{ last30 }}</span>
+        <span style="font-size: 12px; color: var(--label)">Last 30 days</span>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 24px; line-height: 1.05; font-variant-numeric: tabular-nums">{{ last30 }}</span>
       </div>
     </div>
   </div>
 </section>
 
-<section class="notes" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding: 28px 0 8px; border-top: 1px solid #1D2842">
+<section class="notes" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding: 28px 0 8px; border-top: 1px solid var(--line)">
   <div style="display: flex; flex-direction: column; gap: 10px">
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Note i</span>
-    <h3 style="margin: 0; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25">The single fattest fill</h3>
-    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #A6B3CA">One fill paid <span style="color: #E8EEF8; font-weight: 500">{{ bigFee }}</span> in fees, a notional of {{ bigVol }}, in the {{ bigWhen }} UTC hour. That one trade out-earned {{ quietDays }} entire days on record.</p>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Note i</span>
+    <h3 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 25px; line-height: 1.1">The single fattest fill</h3>
+    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink2)">One fill paid <span style="color: var(--ink); font-weight: 500">{{ bigFee }}</span> in fees, a notional of {{ bigVol }}, in the {{ bigWhen }} UTC hour. That one trade out-earned {{ quietDays }} entire days on record.</p>
   </div>
   <div style="display: flex; flex-direction: column; gap: 10px">
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Note ii</span>
-    <h3 style="margin: 0; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25">The market keeps hours</h3>
-    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #A6B3CA">The busiest hour of the day is <span style="color: #E8EEF8; font-weight: 500">{{ bestHour }} UTC</span>, averaging {{ bestHourVol }} of notional. The quietest, {{ worstHour }}, runs about {{ quietRatio }}× thinner.</p>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Note ii</span>
+    <h3 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 25px; line-height: 1.1">The market keeps hours</h3>
+    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink2)">The busiest hour of the day is <span style="color: var(--ink); font-weight: 500">{{ bestHour }} UTC</span>, averaging {{ bestHourVol }} of notional. The quietest, {{ worstHour }}, runs about {{ quietRatio }}× thinner.</p>
   </div>
   <div style="display: flex; flex-direction: column; gap: 10px">
-    <span style="font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: #5FE1F5">Note iii</span>
-    <h3 style="margin: 0; font-size: 19px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.25">The record day</h3>
-    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: #A6B3CA"><span style="color: #E8EEF8; font-weight: 500">{{ recordDayLong }}</span> brought in {{ kRecordDay }} across {{ recordDayFills }} fills. Its busiest hour, {{ recordPeakHour }} UTC, paid {{ recordPeakFee }} on its own.</p>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Note iii</span>
+    <h3 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 25px; line-height: 1.1">The record day</h3>
+    <p style="margin: 0; font-size: 14.5px; line-height: 1.6; color: var(--ink2)"><span style="color: var(--ink); font-weight: 500">{{ recordDayLong }}</span> brought in {{ kRecordDay }} across {{ recordDayFills }} fills. Its busiest hour, {{ recordPeakHour }} UTC, paid {{ recordPeakFee }} on its own.</p>
   </div>
 </section>
 
-<p style="margin: 0; font-family: 'Geist Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.8; color: #7887A4; max-width: 110ch">Method: every USDC transfer received by the fee collector is read from Injective mainnet transaction events, deduplicated, and bucketed by UTC hour; a day is the sum of its 24 hours. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. History begins with the collector’s earliest transaction retained by the Injective explorer index: {{ methodCount }}.</p>
+<p style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.8; color: var(--ink3); max-width: 110ch">Method: every USDC transfer received by the fee collector is read from Injective mainnet transaction events, deduplicated, and bucketed by UTC hour; a day is the sum of its 24 hours. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. History begins with the collector’s earliest transaction retained by the Injective explorer index: {{ methodCount }}.</p>
 
 </div>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"range":{"editor":"enum","options":["30D","90D","All"],"default":"90D","tsType":"&#39;30D&#39;|&#39;90D&#39;|&#39;All&#39;","section":"Fig. 1"},"metric":{"editor":"enum","options":["fees","notional","fills"],"default":"fees","tsType":"&#39;fees&#39;|&#39;notional&#39;|&#39;fills&#39;","section":"Fig. 1"},"showAverage":{"editor":"boolean","default":true,"section":"Fig. 1"},"$preview":{"width":1280,"height":2300}}'>
+<script type="text/x-dc" data-dc-script data-props='{"range":{"editor":"enum","options":["30D","90D","All"],"default":"90D","tsType":"&#39;30D&#39;|&#39;90D&#39;|&#39;All&#39;","section":"Fig. 1"},"metric":{"editor":"enum","options":["fees","notional","fills"],"default":"fees","tsType":"&#39;fees&#39;|&#39;notional&#39;|&#39;fills&#39;","section":"Fig. 1"},"showAverage":{"editor":"boolean","default":true,"section":"Fig. 1"},"theme":{"editor":"enum","options":["auto","light","dark"],"default":"auto","tsType":"&#39;auto&#39;|&#39;light&#39;|&#39;dark&#39;","section":"Theme"},"$preview":{"width":1280,"height":2300}}'>
 const LCD = 'https://sentry.lcd.injective.network';
 const ADDR = 'inj1ehxcakmxm8a0qrm690yckmdw4fk0fmzyc94ngf';
 const DEN = 'erc20:0xa00C59fF5a080D2b954d0c75e46E22a0c371235a';
@@ -573,20 +605,37 @@ function ordinal(n) {
   const v = n % 100;
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
-function heat(t) {
-  if (!(t > 0)) return '#141D33';
+function heat(t, theme) {
+  if (!(t > 0)) return 'var(--heat-zero)';
   const e = Math.pow(Math.min(1, t), 0.42);
-  const L = 0.34 + 0.58 * e;
-  const C = 0.07 + 0.08 * (1 - Math.abs(2 * e - 1));
-  const H = 262 - 62 * e;
+  // Dark ramps from deep blue up to pale cyan; light ramps from pale blue down to navy.
+  const L = theme === 'light' ? 0.9 - 0.56 * e : 0.34 + 0.58 * e;
+  const C = theme === 'light' ? 0.04 + 0.13 * e : 0.07 + 0.08 * (1 - Math.abs(2 * e - 1));
+  const H = theme === 'light' ? 245 + 17 * e : 262 - 62 * e;
   return 'oklch(' + L.toFixed(3) + ' ' + C.toFixed(3) + ' ' + H.toFixed(1) + ')';
+}
+const THEME_KEY = 'rfq-ledger-theme';
+function storedTheme() {
+  try {
+    const t = window.localStorage.getItem(THEME_KEY);
+    return t === 'light' || t === 'dark' ? t : null;
+  } catch (e) {
+    return null;
+  }
+}
+function systemTheme() {
+  try {
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  } catch (e) {
+    return 'dark';
+  }
 }
 function dayShort(date) { return MON[+date.slice(5, 7) - 1] + ' ' + +date.slice(8, 10); }
 function dayLong(date) { return DOW[new Date(date + 'T00:00:00Z').getUTCDay()] + ' ' + dayShort(date); }
 function hourLabel(key) { return dayShort(key) + ' ' + key.slice(11, 13) + ':00'; }
 function hourEndLabel(key) { return dayShort(key) + ' ' + key.slice(11, 13) + ':59'; }
-const HATCH = 'repeating-linear-gradient(135deg, #1C2742 0 1.5px, transparent 1.5px 4px)';
-const HATCH_BAR = 'repeating-linear-gradient(135deg, #3D8BFF 0 2px, rgba(61, 139, 255, 0.28) 2px 5px)';
+const HATCH = 'repeating-linear-gradient(135deg, var(--hatch-line) 0 1.5px, transparent 1.5px 4px)';
+const HATCH_BAR = 'repeating-linear-gradient(135deg, var(--bar) 0 2px, var(--bar-soft) 2px 5px)';
 
 const LOADING = {
   syncedLabel: 'Loading fee history',
@@ -712,7 +761,21 @@ function asOfText(snapshotAt, nowKey) {
 }
 
 class Component extends DCLogic {
-  state = { rows: null, snapshotAt: null, balance: null, range: null, metric: null, hover: null };
+  state = { rows: null, snapshotAt: null, balance: null, range: null, metric: null, hover: null, theme: storedTheme() };
+
+  resolvedTheme() {
+    if (this.state.theme) return this.state.theme;
+    if (this.props.theme === 'light' || this.props.theme === 'dark') return this.props.theme;
+    return systemTheme();
+  }
+
+  toggleTheme = () => {
+    const next = this.resolvedTheme() === 'light' ? 'dark' : 'light';
+    try {
+      window.localStorage.setItem(THEME_KEY, next);
+    } catch (e) {}
+    this.setState({ theme: next });
+  };
 
   loadFees = () => {
     fetch('/api/fees', { cache: 'no-store' })
@@ -744,11 +807,17 @@ class Component extends DCLogic {
     this.loadBalance();
     this.feeRefreshTimer = setInterval(this.loadFees, HOUR_MS);
     this.balanceRefreshTimer = setInterval(this.loadBalance, HOUR_MS);
+    try {
+      this.schemeQuery = window.matchMedia('(prefers-color-scheme: light)');
+      this.onSchemeChange = () => { if (!this.state.theme) this.forceUpdate(); };
+      this.schemeQuery.addEventListener('change', this.onSchemeChange);
+    } catch (e) {}
   }
 
   componentWillUnmount() {
     clearInterval(this.feeRefreshTimer);
     clearInterval(this.balanceRefreshTimer);
+    if (this.schemeQuery) this.schemeQuery.removeEventListener('change', this.onSchemeChange);
   }
 
   derived() {
@@ -770,10 +839,18 @@ class Component extends DCLogic {
   renderVals() {
     const range = this.state.range ?? this.props.range ?? '90D';
     const metric = this.state.metric ?? this.props.metric ?? 'fees';
+    const theme = this.resolvedTheme();
     const segStyle = (on) =>
-      "font-family: 'Geist Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.02em; min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; cursor: pointer; " +
-      (on ? 'background: #22304F; color: #F2F6FC;' : 'background: transparent; color: #8D9BB5;');
+      "font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12px; letter-spacing: 0.02em; min-height: 36px; padding: 0 14px; border: 0; border-radius: 7px; cursor: pointer; " +
+      (on
+        ? 'background: var(--seg-on); color: var(--ink-strong); box-shadow: var(--seg-shadow);'
+        : 'background: transparent; color: var(--label); box-shadow: none;');
     const base = {
+      theme: theme,
+      isLight: theme === 'light',
+      isDark: theme !== 'light',
+      themeLabel: theme === 'light' ? 'Switch to dark theme' : 'Switch to light theme',
+      toggleTheme: this.toggleTheme,
       ranges: ['30D', '90D', 'All'].map((r) => ({
         label: r,
         pressed: range === r,
@@ -819,12 +896,12 @@ class Component extends DCLogic {
     const bars = days.map((d, j) => {
       const v = dayVals[j];
       const on = hoverDay === d.i;
-      let bg = j === peakIdx ? '#FFB547' : on ? '#9CC8FF' : '#3D8BFF';
+      let bg = j === peakIdx ? 'var(--record)' : on ? 'var(--bar-hover)' : 'var(--bar)';
       if (d.current) bg = HATCH_BAR;
       return {
         h: (v > 0 ? Math.max(0.8, (v / yMax) * 100) : 0).toFixed(2) + '%',
         bg: bg,
-        colBg: on ? 'rgba(156, 200, 255, 0.09)' : 'transparent',
+        colBg: on ? 'var(--col-hover)' : 'transparent',
         title: d.long + ': ' + fmt(v) + (d.current ? ' so far' : ''),
         hover: () => this.pick(d.i, null),
       };
@@ -850,10 +927,10 @@ class Component extends DCLogic {
     let hMax = 0;
     days.forEach((d) => d.hours.forEach((x) => { if (x.state === 'ok') hMax = Math.max(hMax, val(x)); }));
     const heatCols = days.map((d) => ({
-      outline: hoverDay === d.i ? '1px solid #9CC8FF' : '1px solid transparent',
+      outline: hoverDay === d.i ? '1px solid var(--bar-hover)' : '1px solid transparent',
       cells: d.hours.map((x) => ({
-        bg: x.state === 'ok' ? heat(val(x) / (hMax || 1)) : HATCH,
-        ring: hoverDay === d.i && hoverHour === x.hour ? '1.5px solid #F2F6FC' : 'none',
+        bg: x.state === 'ok' ? heat(val(x) / (hMax || 1), theme) : HATCH,
+        ring: hoverDay === d.i && hoverHour === x.hour ? '1.5px solid var(--ink-strong)' : 'none',
         title: d.short + ', ' + pad(x.hour) + ':00 UTC: ' +
           (x.state === 'future' ? 'not yet' : x.state === 'before' ? 'before history' : fmt(val(x))),
         hover: () => this.pick(d.i, x.hour),
@@ -873,12 +950,12 @@ class Component extends DCLogic {
     const tail = Math.max(4, Math.round(n * 0.07));
     const xLabels = days.map((d, j) => {
       if (j === n - 1) {
-        return { show: true, text: 'Today', left: 'auto', right: '0', bl: 'none', br: '1px solid #2A3858' };
+        return { show: true, text: 'Today', left: 'auto', right: '0', bl: 'none', br: '1px solid var(--line-strong)' };
       }
       const show = range === '30D'
         ? j % 7 === 0
         : d.dom === 1 || (j === 0 && (firstStart < 0 || firstStart >= 8));
-      return { show: show && j < n - tail, text: d.short, left: '0', right: 'auto', bl: '1px solid #2A3858', br: 'none' };
+      return { show: show && j < n - tail, text: d.short, left: '0', right: 'auto', bl: '1px solid var(--line-strong)', br: 'none' };
     });
 
     // Range summary
@@ -937,14 +1014,14 @@ class Component extends DCLogic {
         today: d.current,
         fees: money(d.fee, 2),
         delta: delta == null ? '–' : signedPct(delta),
-        deltaColor: delta == null ? '#7887A4' : delta >= 0 ? '#5FE1F5' : '#A6B3CA',
+        deltaColor: delta == null ? 'var(--ink3)' : delta >= 0 ? 'var(--accent)' : 'var(--ink2)',
         notional: short(d.fee / BPS),
         fills: count(d.n),
         avgFill: d.n ? short(d.fee / BPS / d.n) : '–',
         peak: d.peakFee > 0 ? pad(d.peakHour) + ':00' : '–',
         spark: d.hours.map((x) => ({
           h: x.state !== 'ok' ? '100%' : x.fee > 0 ? Math.max(8, (x.fee / top) * 100).toFixed(0) + '%' : '4%',
-          bg: x.state !== 'ok' ? HATCH : x.fee > 0 && x.hour === d.peakHour ? '#FFB547' : x.fee > 0 ? '#3D8BFF' : '#24304D',
+          bg: x.state !== 'ok' ? HATCH : x.fee > 0 && x.hour === d.peakHour ? 'var(--record)' : x.fee > 0 ? 'var(--bar)' : 'var(--zero)',
         })),
       };
     });
@@ -995,11 +1072,11 @@ class Component extends DCLogic {
       hourLabels: Array.from({ length: 24 }, (_, h) => (h % 3 === 0 ? pad(h) : '')),
       profile: prof.map((v, h) => ({
         w: ((v / (prof[bestH] || 1)) * 100).toFixed(1) + '%',
-        bg: h === bestH ? '#FFB547' : h === hoverHour ? '#9CC8FF' : '#33507F',
+        bg: h === bestH ? 'var(--record)' : h === hoverHour ? 'var(--bar-hover)' : 'var(--profile)',
         label: h === bestH && v > 0 ? fmtShort(v) : '',
       })),
       xLabels: xLabels,
-      legend: [0, 0.02, 0.08, 0.2, 0.4, 0.7, 1].map((t) => ({ bg: heat(t) })),
+      legend: [0, 0.02, 0.08, 0.2, 0.4, 0.7, 1].map((t) => ({ bg: heat(t, theme) })),
       legendMax: fmtShort(hMax),
       roTitle: roTitle,
       roParts: roParts,
