@@ -19,6 +19,9 @@ const distDir = resolve(fileURLToPath(new URL('./dist/', import.meta.url)));
 const seedCsvPath = fileURLToPath(
   new URL('./fee-data.csv', import.meta.url),
 );
+const feeDataPath = fileURLToPath(
+  new URL('./fee-data.js', import.meta.url),
+);
 const contentTypes = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -90,6 +93,21 @@ export function createFeeServer({
         sendJson(res, 500, {
           error: 'failed to read fee cache',
         });
+      }
+      return;
+    }
+
+    if (pathname === '/fee-data.js') {
+      try {
+        const body = await readFile(feeDataPath);
+        res.writeHead(200, {
+          'Cache-Control': 'public, max-age=3600',
+          'Content-Length': body.byteLength,
+          'Content-Type': contentTypes['.js'],
+        });
+        res.end(req.method === 'HEAD' ? undefined : body);
+      } catch {
+        send(res, 404, 'Not Found\n', 'text/plain; charset=utf-8');
       }
       return;
     }

@@ -97,6 +97,18 @@ test('serves cached fee history with hourly refresh metadata', async () => {
   ]);
 });
 
+test('serves the fee-data.js snapshot the dashboard falls back to', async () => {
+  const page = await (await fetch(`${baseUrl}/`)).text();
+  assert.ok(page.includes("import('./fee-data.js')"));
+
+  const response = await fetch(`${baseUrl}/fee-data.js`);
+  const body = await response.text();
+
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get('content-type'), /^text\/javascript/);
+  assert.match(body, /export function parseHourly\(\)/);
+});
+
 test('returns 404 for files outside the public bundle', async () => {
   const response = await fetch(`${baseUrl}/package.json`);
 
