@@ -31,6 +31,11 @@ Served at **https://fees.inj.so**
   reaches the collector's first indexed fee activity on 2026-06-02.
 - The wallet balance shown in the header is fetched live from
   `https://sentry.lcd.injective.network`.
+- Unique traders are the distinct `taker` wallets named in each fee transaction's
+  `wasm-rfq-accept-quote` events (direct, AuthZ relayer, and atomic-proxy trades
+  alike), stored in `fee_transfer_takers`. Tracking began on 2026-10-01; earlier
+  history is no longer available from public nodes, so older days show no count.
+  `takers_since` in `sync_state` marks how far back the counts are complete.
 
 ## Refreshing fee history
 
@@ -41,6 +46,7 @@ hash. The dashboard also reloads the cached API once per hour.
 
 ```bash
 npm run sync:fees       # one incremental update
+npm run sync:fees -- --since 2026-10-01T00:00:00Z   # re-read back to a time (within LCD retention)
 npm run rebuild:fees    # intentionally heavy complete history rebuild
 ```
 
