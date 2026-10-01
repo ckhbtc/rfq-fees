@@ -7,16 +7,19 @@ Served at **https://fees.inj.so**
 
 ## What's here
 
-- `The RFQ Ledger.dc.html` — the source design
-- `fee-data.js` and `fee-data.csv` — the initial hourly snapshot and outage fallback.
+- `The RFQ Ledger.dc.html` – the dashboard source (daily and hourly fees)
+- `fee-data.js` and `fee-data.csv` – the initial hourly snapshot and outage fallback.
   Row format:
   `YYYY-MM-DDTHH,txCount,feeMicroUSDC,largestSingleFeeMicroUSDC`
-- `lib/fee-store.js` — SQLite storage for transactions, hourly aggregates, and sync state
-- `lib/fee-sync.js` — lightweight incremental Injective LCD ingestion
-- `lib/explorer-fee-sync.js` — explicit full-history explorer backfill
-- `scripts/fetch-fees.mjs` — command-line sync and rebuild entry point
-- `scripts/verify-bps.mjs` — live check of the flat 4.0 bps assumption
-- `dist/index.html` — self-contained dashboard bundle
+- `lib/fee-store.js` – SQLite storage for transactions, hourly aggregates, and sync state
+- `lib/fee-sync.js` – lightweight incremental Injective LCD ingestion
+- `lib/explorer-fee-sync.js` – explicit full-history explorer backfill
+- `scripts/fetch-fees.mjs` – command-line sync and rebuild entry point
+- `scripts/verify-bps.mjs` – live check of the flat 4.0 bps assumption
+- `lib/daily-fees.js` – UTC-day series derived from the hourly rows
+- `lib/rolling-fees.js` – rolling 24h total and record
+- `scripts/build-dashboard.mjs` – rebuilds `dist/index.html` from the source
+- `dist/index.html` – self-contained dashboard bundle
 
 ## Data notes
 
@@ -57,6 +60,14 @@ FEE_SYNC_START_DELAY_MS=5000
 `GET /api/fees` serves SQLite-backed hourly aggregates with a five-minute HTTP
 cache and stale-while-revalidate fallback. If the API is unavailable, the
 dashboard falls back to the embedded `fee-data.js` snapshot.
+
+## Dashboard build
+
+Edit `The RFQ Ledger.dc.html`, then run `npm run build` to regenerate
+`dist/index.html`. The build copies the tested helpers from `lib/` into the
+page between its `// <lib:…>` markers, and `npm test` fails if the source or
+bundle are out of date. Daily totals are computed in the browser from the
+hourly API rows, so the API is unchanged.
 
 ## Run
 
