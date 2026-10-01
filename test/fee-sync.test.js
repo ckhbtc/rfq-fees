@@ -126,3 +126,50 @@ test('rebuild replaces seeded aggregates with raw history', async () => {
   });
   store.close();
 });
+
+function takerTx(txhash, timestamp, taker) {
+  const base = tx(txhash, timestamp);
+  return {
+    ...base,
+    events: [
+      ...base.events,
+      {
+        type: 'wasm-rfq-accept-quote',
+        attributes: [{ key: 'taker', value: taker }],
+      },
+    ],
+  };
+}
+
+test('incremental sync records takers and only claims coverage it saw', async () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  let page = [
+    takerTx('NEW', '2026-07-27T21:30:00Z', 'inj1alice'),
+    takerTx('OLD', '2026-07-27T20:10:00Z', 'inj1bob'),
+  ];
+  const sync = createFeeSync({
+    store,
+    address,
+    denom,
+    hosts: ['https://lcd.example'],
+    fetchImpl: async () => response({ total: String(page.length), tx_responses: page }),
+    retryCount: 1,
+    clock: () => new Date('2026-07-27T22:00:00Z'),
+  });
+
+  await sync.syncIncremental({ since: '2026-07-27T00:00:00.000Z' });
+  assert.deepEqual(store.getSnapshot().traders, {
+    since: '2026-07-27T20:10:00Z',
+    daily: [{ date: '2026-07-27', unique: 2 }],
+    total: 2,
+  });
+
+  page = [...page, takerTx('PRE', '2026-07-26T23:50:00Z', 'inj1carol')];
+  await sync.syncIncremental({ since: '2026-07-27T00:00:00.000Z' });
+  assert.equal(
+    store.getSnapshot().traders.since,
+    '2026-07-27T00:00:00.000Z',
+  );
+  assert.equal(store.getStats().storedTransfers, 2);
+  store.close();
+});

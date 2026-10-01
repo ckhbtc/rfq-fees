@@ -102,6 +102,7 @@ test('serves cached fee history with hourly refresh metadata', async () => {
   assert.equal(payload.source, 'sqlite');
   assert.equal(payload.snapshotAt, '2026-07-27T20:55:00Z');
   assert.equal(payload.refreshIntervalSeconds, 3600);
+  assert.deepEqual(payload.traders, { since: null, daily: [], total: 0 });
   assert.deepEqual(payload.rows, [
     {
       key: '2026-07-27T20',

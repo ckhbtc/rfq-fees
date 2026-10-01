@@ -96,3 +96,80 @@ test('atomically rebuilds raw transfers and aggregates', () => {
   });
   store.close();
 });
+
+function tracked(txHash, timestamp, takers) {
+  return {
+    txHash,
+    height: 1,
+    timestamp,
+    hourUtc: timestamp.slice(0, 13),
+    feeMicroUsdc: 100_000,
+    takers,
+  };
+}
+
+test('reports unique takers per UTC day once tracking starts', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  assert.deepEqual(store.getSnapshot().traders, {
+    since: null,
+    daily: [],
+    total: 0,
+  });
+
+  store.insertTransfers(
+    [
+      tracked('A', '2026-10-01T01:10:00Z', ['inj1alice', 'inj1bob']),
+      tracked('B', '2026-10-01T05:20:00Z', ['inj1alice']),
+      tracked('C', '2026-10-02T03:30:00Z', ['inj1carol', 'inj1alice']),
+    ],
+    { coveredFrom: '2026-10-01T00:00:00.000Z' },
+  );
+
+  assert.deepEqual(store.getSnapshot().traders, {
+    since: '2026-10-01T00:00:00.000Z',
+    daily: [
+      { date: '2026-10-01', unique: 2 },
+      { date: '2026-10-02', unique: 2 },
+    ],
+    total: 3,
+  });
+  store.close();
+});
+
+test('adds takers to transfers that were already stored', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  const untracked = tracked('A', '2026-10-01T01:10:00Z', []);
+
+  assert.equal(store.insertTransfers([untracked]), 1);
+  assert.equal(
+    store.insertTransfers(
+      [tracked('A', '2026-10-01T01:10:00Z', ['inj1alice'])],
+      { coveredFrom: '2026-10-01T00:00:00.000Z' },
+    ),
+    0,
+  );
+
+  assert.equal(store.getStats().fills, 1);
+  assert.deepEqual(store.getSnapshot().traders.daily, [
+    { date: '2026-10-01', unique: 1 },
+  ]);
+  store.close();
+});
+
+test('only moves the tracking start earlier', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+
+  store.insertTransfers([], { coveredFrom: '2026-10-01T15:12:00.000Z' });
+  store.insertTransfers([], { coveredFrom: '2026-10-01T16:00:00.000Z' });
+  assert.equal(
+    store.getSnapshot().traders.since,
+    '2026-10-01T15:12:00.000Z',
+  );
+
+  store.insertTransfers([], { coveredFrom: '2026-10-01T00:00:00.000Z' });
+  assert.equal(
+    store.getSnapshot().traders.since,
+    '2026-10-01T00:00:00.000Z',
+  );
+  store.close();
+});

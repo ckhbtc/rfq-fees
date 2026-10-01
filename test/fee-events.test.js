@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { feeOf, toFeeTransfer } from '../lib/fee-events.js';
+import { feeOf, takersOf, toFeeTransfer } from '../lib/fee-events.js';
 
 const address = 'inj1collector';
 const denom = 'factory/usdc';
@@ -44,6 +44,7 @@ test('converts successful fee transactions into stored rows', () => {
       timestamp: '2026-07-27T21:36:14Z',
       hourUtc: '2026-07-27T21',
       feeMicroUsdc: 1_200_000,
+      takers: [],
     },
   );
 });
@@ -77,4 +78,39 @@ test('ignores failed transactions and unrelated transfers', () => {
     }),
     0,
   );
+});
+
+test('reads unique RFQ takers from accept_quote events', () => {
+  const fee = transaction();
+  const withTakers = transaction({
+    events: [
+      ...fee.events,
+      {
+        type: 'wasm-rfq-accept-quote',
+        attributes: [
+          { key: '_contract_address', value: 'inj1rfq' },
+          { key: 'taker', value: 'inj1bob' },
+        ],
+      },
+      {
+        type: 'wasm-rfq-accept-quote',
+        attributes: [{ key: 'taker', value: 'inj1alice' }],
+      },
+      {
+        type: 'wasm-rfq-accept-quote',
+        attributes: [{ key: 'taker', value: 'inj1bob' }],
+      },
+      {
+        type: 'wasm-atomic-rfq-proxy-execution-started',
+        attributes: [{ key: 'user', value: 'inj1carol' }],
+      },
+    ],
+  });
+
+  assert.deepEqual(takersOf(withTakers), ['inj1alice', 'inj1bob']);
+  assert.deepEqual(
+    toFeeTransfer(withTakers, { address, denom }).takers,
+    ['inj1alice', 'inj1bob'],
+  );
+  assert.deepEqual(takersOf(fee), []);
 });

@@ -28,10 +28,16 @@ const backfill = createExplorerFeeBackfill({
   denom: USDC_DENOM,
 });
 
+const sinceIndex = process.argv.indexOf('--since');
+const since = sinceIndex === -1 ? undefined : process.argv[sinceIndex + 1];
+if (since !== undefined && !Number.isFinite(Date.parse(since))) {
+  throw new Error('--since needs an ISO timestamp, e.g. 2026-10-01T00:00:00Z');
+}
+
 try {
   const result = process.argv.includes('--rebuild')
     ? await backfill.rebuild()
-    : await sync.syncIncremental();
+    : await sync.syncIncremental({ since });
   const stats = store.getStats();
   console.log(
     JSON.stringify(

@@ -70,6 +70,7 @@ test('normalizes successful explorer fee transfers', () => {
       timestamp: '2026-06-02T17:49:59.737Z',
       hourUtc: '2026-06-02T17',
       feeMicroUsdc: 3_772,
+      takers: [],
     },
   );
 
