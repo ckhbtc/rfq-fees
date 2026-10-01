@@ -173,3 +173,54 @@ test('only moves the tracking start earlier', () => {
   );
   store.close();
 });
+
+test('replaceTransfers refuses to shrink stored transfers unless forced', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  store.insertTransfers([
+    tracked('A', '2026-10-01T01:10:00Z', []),
+    tracked('B', '2026-10-01T05:20:00Z', []),
+  ]);
+  const options = {
+    cursorAt: '2026-10-01T05:20:00Z',
+    host: 'https://explorer.example',
+    syncedAt: '2026-10-01T06:00:00Z',
+  };
+
+  assert.throws(
+    () => store.replaceTransfers([tracked('A', '2026-10-01T01:10:00Z', [])], options),
+    /shrink/i,
+  );
+  assert.throws(
+    () =>
+      store.replaceTransfers(
+        [
+          tracked('X', '2026-07-01T01:00:00Z', []),
+          tracked('Y', '2026-07-01T02:00:00Z', []),
+          tracked('Z', '2026-07-01T03:00:00Z', []),
+        ],
+        { ...options, cursorAt: '2026-07-01T03:00:00Z' },
+      ),
+    /shrink/i,
+  );
+  assert.equal(store.getStats().storedTransfers, 2);
+
+  assert.equal(
+    store.replaceTransfers(
+      [
+        tracked('A', '2026-10-01T01:10:00Z', []),
+        tracked('B', '2026-10-01T05:20:00Z', []),
+        tracked('C', '2026-10-01T05:40:00Z', []),
+      ],
+      { ...options, cursorAt: '2026-10-01T05:40:00Z' },
+    ),
+    3,
+  );
+  assert.equal(
+    store.replaceTransfers([tracked('A', '2026-10-01T01:10:00Z', [])], {
+      ...options,
+      force: true,
+    }),
+    1,
+  );
+  store.close();
+});

@@ -36,7 +36,7 @@ if (since !== undefined && !Number.isFinite(Date.parse(since))) {
 
 try {
   const result = process.argv.includes('--rebuild')
-    ? await backfill.rebuild()
+    ? await backfill.rebuild({ force: process.argv.includes('--force') })
     : await sync.syncIncremental({ since });
   const stats = store.getStats();
   console.log(

@@ -55,6 +55,10 @@ pages, normalizes fee transfers, deduplicates transaction hashes, and replaces
 SQLite data only after every page succeeds. It can download hundreds of
 megabytes, so it is for initialization or repair, not scheduled use.
 
+A rebuild refuses to replace stored history with fewer transfers, or with
+history that ends earlier than what is stored, and changes nothing. Run
+`npm run rebuild:fees -- --force` to override that only for a deliberate repair.
+
 Runtime configuration:
 
 ```text

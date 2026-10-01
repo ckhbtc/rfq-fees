@@ -193,3 +193,49 @@ test('failed backfill preserves the complete stored history', async () => {
   assert.deepEqual(store.getStats(), before);
   store.close();
 });
+
+test('backfill refuses to replace newer or larger stored history', async () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  store.insertTransfers(
+    ['A', 'B', 'C'].map((hash, index) => ({
+      txHash: hash,
+      height: index + 1,
+      timestamp: `2026-10-01T0${index}:00:00Z`,
+      hourUtc: `2026-10-01T0${index}`,
+      feeMicroUsdc: 100_000,
+      takers: [],
+    })),
+  );
+  store.recordSyncSuccess({
+    cursorAt: '2026-10-01T02:00:00Z',
+    host: 'https://lcd.example',
+    syncedAt: '2026-10-01T02:30:00Z',
+  });
+  const before = store.getStats();
+  const fetchImpl = async () =>
+    response({
+      paging: { total: '1' },
+      data: [explorerTx('0xOLD', '2026-07-07T17:41:00Z', 500_000)],
+    });
+  const backfill = createExplorerFeeBackfill({
+    store,
+    address,
+    denom,
+    endpoint,
+    fetchImpl,
+    pageSize: 2,
+    retryCount: 1,
+    clock: () => new Date('2026-10-01T03:00:00Z'),
+    logger: { error() {} },
+  });
+
+  await assert.rejects(backfill.rebuild(), /shrink[\s\S]*--force/i);
+  assert.deepEqual(store.getStats(), before);
+  assert.equal(store.getCursorAt(), '2026-10-01T02:00:00Z');
+  assert.equal(store.getSnapshot().sync.status, 'error');
+
+  const forced = await backfill.rebuild({ force: true });
+  assert.equal(forced.inserted, 1);
+  assert.equal(store.getStats().storedTransfers, 1);
+  store.close();
+});
