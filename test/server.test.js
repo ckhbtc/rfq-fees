@@ -44,75 +44,28 @@ test('serves the bundled RFQ ledger at the root', async () => {
 
   assert.equal(response.status, 200);
   assert.match(response.headers.get('content-type'), /^text\/html/);
-  assert.match(html, /The RFQ Ledger/);
-  assert.match(html, /\{\{ heroVolume \}\}/);
-  assert.match(
-    html,
-    /heroVolume: volumeWords\(totalFee \/ BPS\)/,
-  );
-  assert.equal(
-    html.match(/heroVolume: volumeWords\(totalFee \/ BPS\)/g)
-      ?.length,
-    1,
-  );
-  assert.doesNotMatch(html, /\{\{ kVol \}\} traded to date/);
-  assert.doesNotMatch(html, /eleven million dollars/);
+  assert.match(html, /<title>RFQ Ledger · Injective RFQ fees<\/title>/);
+  assert.match(html, /Every day, and every hour inside it/);
+  assert.match(html, /Fig\. 2 · Daily ledger/);
+  assert.match(html, /Fees collected to date/);
+  assert.match(html, /Today so far/);
+  assert.match(html, /Record day/);
+  assert.match(html, /Record 24 hours/);
+  assert.match(html, /Collector balance/);
   assert.match(html, /\/api\/fees/);
   assert.match(html, /feeRefreshTimer/);
-  assert.match(html, /Total balance/);
-  assert.match(html, /\{\{ kBal \}\}/);
-  assert.match(html, /Fee rate/);
   assert.match(html, /balanceRefreshTimer/);
-  assert.ok(
-    html.includes(
-      'kBal: this.state.balance == null ? \\"…\\" : \\"$\\" + num',
-    ),
-  );
-  assert.doesNotMatch(html, /Fees collected/);
-  assert.doesNotMatch(html, /Balance today/);
-  assert.doesNotMatch(html, /USDC · \{\{ kDays \}\}/);
-  assert.doesNotMatch(html, /Every hour, all \{\{ kDays \}\}/);
-  assert.doesNotMatch(html, /Every hour in the searchable window/);
-  assert.match(html, /Hourly fee activity/);
+  assert.match(html, /function calculateRolling24\(rows, currentHourKey\)/);
+  assert.match(html, /function buildDailyFees\(rows, currentHourKey\)/);
+  assert.match(html, /sc-camel-on-mouse-enter=\\"\{\{ c\.hover \}\}\\"/);
+  assert.match(html, /sc-camel-on-mouse-leave=\\"\{\{ clearHover \}\}\\"/);
+  assert.match(html, /@media \(max-width: 760px\)/);
   assert.match(
     html,
     /earliest transaction retained by the Injective explorer index/,
   );
-  assert.doesNotMatch(
-    html,
-    /One wallet on Injective receives a flat 4\.0 bps/,
-  );
-  assert.match(html, /Cumulative fees over time/);
-  assert.doesNotMatch(html, /The jar, filling/);
-  assert.match(html, /@media \(max-width: 700px\)/);
-  assert.match(html, /class=\\"page-frame\\"/);
-  assert.match(html, /class=\\"heatmap-scroll\\"/);
-  assert.match(html, /class=\\"mobile-swipe-hint\\"/);
-  assert.match(html, /max-height: 68svh/);
-  assert.match(html, /min-width: 740px/);
-  assert.match(html, /Tap or hover any cell/);
-  assert.match(html, /sc-camel-on-click=\\"\{\{ c\.hover \}\}\\"/);
-  assert.match(html, /const labelStep = Math\.max/);
-  assert.match(html, /labelTransform: \\"translateX\(-100%\)\\"/);
-  assert.doesNotMatch(html, /Record UTC day/);
-  assert.match(html, /Record 24h/);
-  assert.match(html, /Last 24h fees/);
-  assert.match(html, /\{\{ kRecord24h \}\}/);
-  assert.match(html, /\{\{ record24Note \}\}/);
-  assert.match(html, /\{\{ kLast24h \}\}/);
-  assert.match(html, /function calculateRolling24\(rows, currentHourKey\)/);
-  assert.match(html, /snapshotHour: j\.snapshotAt\.slice\(0, 13\)/);
-  assert.match(html, /const rolling24 = calculateRolling24\(rows, currentHourKey\)/);
-  assert.match(html, /isNewRecord: rolling24\.isNewRecord/);
-  assert.match(html, /new record/);
-  assert.match(html, /class=\\"new-record-dot\\"/);
-  assert.match(html, /@keyframes record-pulse/);
-  assert.match(html, /@media \(prefers-reduced-motion: reduce\)/);
-  assert.match(html, /const annotationsCrowded =/);
-  assert.match(html, /annotationsCrowded \? 18 : -26/);
-  assert.match(html, /annotationsCrowded \? -44 : -26/);
-  assert.match(html, /const peakLabelTransform = annotationsCrowded/);
-  assert.match(html, /labelTransform: peakLabelTransform/);
+  assert.doesNotMatch(html, /onMouseEnter=/);
+  assert.doesNotMatch(html, /Bundled Page/);
 });
 
 test('reports service health', async () => {
