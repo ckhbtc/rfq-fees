@@ -60,7 +60,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .chart-row { grid-template-columns: 34px minmax(0, 1fr) !important; gap: 0 8px !important; }
   .chart-side { display: none !important; }
   .ledger-scroll { overflow-x: auto; margin: 0 -14px; padding: 0 14px; }
-  .ledger-grid { min-width: 660px; }
+  .ledger-grid { min-width: 720px; }
   .notes { grid-template-columns: minmax(0, 1fr) !important; }
 }
 </style>
@@ -107,6 +107,10 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       <div style="display: flex; flex-direction: column; gap: 4px">
         <span style="font-size: 12px; color: var(--ink3)">Days tracked</span>
         <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px">{{ daysTracked }}</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 4px">
+        <span style="font-size: 12px; color: var(--ink3)">Traders today</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px">{{ tradersToday }}</span>
       </div>
     </div>
   </div>
@@ -306,18 +310,19 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     </div>
     <div class="ledger-scroll">
       <div class="ledger-grid" style="display: flex; flex-direction: column">
-        <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; padding: 0 0 8px; font-size: 11.5px; color: var(--ink3)">
+        <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.7fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.3fr); column-gap: 12px; padding: 0 0 8px; font-size: 11.5px; color: var(--ink3)">
           <span>Day</span>
           <span style="text-align: right">Fees</span>
           <span style="text-align: right">vs 7d</span>
           <span style="text-align: right">Notional</span>
           <span style="text-align: right">Fills</span>
+          <span style="text-align: right">Traders</span>
           <span style="text-align: right">Avg fill</span>
           <span style="text-align: right">Peak</span>
           <span>By hour</span>
         </div>
         <sc-for list="{{ ledger }}" as="r" hint-placeholder-count="10">
-          <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.5fr); column-gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--grid); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink2)">
+          <div style="display: grid; grid-template-columns: minmax(118px, 1.5fr) minmax(0, 1fr) minmax(0, 0.75fr) minmax(0, 0.85fr) minmax(0, 0.75fr) minmax(0, 0.7fr) minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(96px, 1.3fr); column-gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--grid); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink2)">
             <div style="display: flex; align-items: center; gap: 8px; white-space: nowrap; font-family: 'IBM Plex Sans', system-ui, sans-serif">
               <span style="font-size: 13.5px; color: var(--ink)">{{ r.day }}</span>
               <sc-if value="{{ r.today }}" hint-placeholder-val="{{ false }}">
@@ -328,6 +333,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
             <span style="text-align: right; color: {{ r.deltaColor }}">{{ r.delta }}</span>
             <span style="text-align: right">{{ r.notional }}</span>
             <span style="text-align: right">{{ r.fills }}</span>
+            <span style="text-align: right" title="{{ r.tradersTitle }}">{{ r.traders }}</span>
             <span style="text-align: right">{{ r.avgFill }}</span>
             <span style="text-align: right">{{ r.peak }}</span>
             <div style="display: flex; align-items: flex-end; gap: 1px; height: 24px">
@@ -645,6 +651,7 @@ const LOADING = {
   heroFills: '…',
   avgFill: '…',
   daysTracked: '…',
+  tradersToday: '…',
   kToday: '…',
   kYday: '…',
   kWeek: '…',
@@ -672,15 +679,22 @@ const LOADING = {
   roParts: [],
 };
 
-function deriveLedger(rows, snapshotAt) {
+function deriveLedger(rows, snapshotAt, traders) {
   const latestKey = rows[rows.length - 1].key;
   const snapshotHour = typeof snapshotAt === 'string' ? snapshotAt.slice(0, 13) : null;
   const nowKey = snapshotHour && snapshotHour > latestKey ? snapshotHour : latestKey;
+  // Unique takers are only known from traders.since onward; earlier days stay null.
+  const tradersSince = traders && traders.since ? traders.since : null;
+  const tradersFrom = tradersSince ? tradersSince.slice(0, 10) : null;
+  const tradersByDate = {};
+  ((traders && traders.daily) || []).forEach((t) => { tradersByDate[t.date] = t.unique; });
   const days = buildDailyFees(rows, nowKey).map((d, i) => Object.assign({}, d, {
     i: i,
     short: dayShort(d.date),
     long: dayLong(d.date),
     dom: +d.date.slice(8, 10),
+    traders: tradersFrom && d.date >= tradersFrom ? tradersByDate[d.date] || 0 : null,
+    tradersPartial: d.date === tradersFrom && tradersSince.slice(11, 16) !== '00:00',
   }));
   const today = days[days.length - 1];
   const yday = days.length > 1 ? days[days.length - 2] : null;
@@ -719,6 +733,7 @@ function deriveLedger(rows, snapshotAt) {
 
   return {
     days: days,
+    tradersSince: tradersSince,
     nowKey: nowKey,
     nowHour: +nowKey.slice(11, 13),
     today: today,
@@ -783,7 +798,7 @@ class Component extends DCLogic {
         if (!r.ok) throw new Error('fee cache unavailable');
         return r.json();
       })
-      .then((j) => this.setState({ rows: j.rows, snapshotAt: j.snapshotAt }))
+      .then((j) => this.setState({ rows: j.rows, snapshotAt: j.snapshotAt, traders: j.traders || null }))
       .catch(() => {
         if (!this.state.rows) {
           import('./fee-data.js').then((m) => this.setState({ rows: m.parseHourly() }));
@@ -822,11 +837,16 @@ class Component extends DCLogic {
 
   derived() {
     const rows = this.state.rows;
-    if (this.cache && this.cache.rows === rows && this.cache.snapshotAt === this.state.snapshotAt) {
+    if (
+      this.cache &&
+      this.cache.rows === rows &&
+      this.cache.snapshotAt === this.state.snapshotAt &&
+      this.cache.traders === this.state.traders
+    ) {
       return this.cache.value;
     }
-    const value = deriveLedger(rows, this.state.snapshotAt);
-    this.cache = { rows: rows, snapshotAt: this.state.snapshotAt, value: value };
+    const value = deriveLedger(rows, this.state.snapshotAt, this.state.traders);
+    this.cache = { rows: rows, snapshotAt: this.state.snapshotAt, traders: this.state.traders, value: value };
     return value;
   }
 
@@ -972,6 +992,19 @@ class Component extends DCLogic {
       { k: 'Busiest hour', v: pad(bestH) + ':00 UTC', note: 'avg ' + fmt(prof[bestH]) + ' per hour' },
     ];
 
+    // Traders: unique taker wallets per UTC day, tracked from D.tradersSince.
+    const sinceTime = D.tradersSince ? D.tradersSince.slice(11, 16) : '';
+    const tradersText = (d) =>
+      d.traders == null
+        ? 'not tracked'
+        : count(d.traders) + (d.tradersPartial ? ' since ' + sinceTime + ' UTC' : '');
+    const tradersTitle = (d) =>
+      d.traders == null
+        ? D.tradersSince
+          ? 'Trader tracking began ' + dayShort(D.tradersSince)
+          : 'Trader tracking has not started'
+        : count(d.traders) + ' unique taker wallets' + (d.tradersPartial ? ' since ' + sinceTime + ' UTC' : '');
+
     // Readout
     let roTitle;
     let roParts;
@@ -998,6 +1031,7 @@ class Component extends DCLogic {
         { k: 'Fees', v: money(d.fee, 2) },
         { k: 'Notional', v: short(d.fee / BPS) },
         { k: 'Fills', v: count(d.n) },
+        { k: 'Traders', v: tradersText(d) },
         { k: 'Busiest hour', v: d.peakFee > 0 ? pad(d.peakHour) + ':00 · ' + money(d.peakFee, 2) : '–' },
         { k: 'vs prior 7d', v: d.current || !avg ? 'in progress' : signedPct(d.fee / avg - 1) },
       ];
@@ -1017,6 +1051,8 @@ class Component extends DCLogic {
         deltaColor: delta == null ? 'var(--ink3)' : delta >= 0 ? 'var(--accent)' : 'var(--ink2)',
         notional: short(d.fee / BPS),
         fills: count(d.n),
+        traders: d.traders == null ? '–' : count(d.traders),
+        tradersTitle: tradersTitle(d),
         avgFill: d.n ? short(d.fee / BPS / d.n) : '–',
         peak: d.peakFee > 0 ? pad(d.peakHour) + ':00' : '–',
         spark: d.hours.map((x) => ({
@@ -1041,9 +1077,11 @@ class Component extends DCLogic {
       heroFills: count(D.totalN),
       avgFill: D.totalN ? short(D.totalFee / BPS / D.totalN) : '–',
       daysTracked: String(DAYS.length),
+      tradersToday: D.today.traders == null ? '–' : count(D.today.traders),
 
       kToday: money(D.today.fee, 2),
-      todayNote: (D.nowHour + 1) + ' of 24 hours · ' + count(D.today.n) + ' fills',
+      todayNote: (D.nowHour + 1) + ' of 24 hours · ' + count(D.today.n) + ' fills' +
+        (D.today.traders == null ? '' : ' · ' + count(D.today.traders) + ' traders'),
       kYday: D.yday ? money(D.yday.fee, 2) : '–',
       ydayNote: D.yday ? D.yday.long + ' · ' + ordinal(D.ydayRank) + ' best day' : '',
       kWeek: money(D.weekAvg, 2),
