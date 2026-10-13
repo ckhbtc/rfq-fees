@@ -60,10 +60,7 @@ test('serves the bundled RFQ ledger at the root', async () => {
   assert.match(html, /sc-camel-on-mouse-enter=\\"\{\{ c\.hover \}\}\\"/);
   assert.match(html, /sc-camel-on-mouse-leave=\\"\{\{ clearHover \}\}\\"/);
   assert.match(html, /@media \(max-width: 760px\)/);
-  assert.match(
-    html,
-    /earliest transaction retained by the Injective explorer index/,
-  );
+  assert.doesNotMatch(html, /Method: every USDC transfer/);
   assert.doesNotMatch(html, /onMouseEnter=/);
   assert.doesNotMatch(html, /Bundled Page/);
 });

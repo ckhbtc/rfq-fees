@@ -417,8 +417,6 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </div>
 </section>
 
-<p style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; line-height: 1.8; color: var(--ink3); max-width: 110ch">Method: every USDC transfer received by the fee collector is read from Injective mainnet transaction events, deduplicated, and bucketed by UTC hour; a day is the sum of its 24 hours. The 4.0 bps rate was verified fill by fill against the quoted price and quantity in each accept_quote message, so notional is derived exactly rather than estimated. History begins with the collector’s earliest transaction retained by the Injective explorer index: {{ methodCount }}.</p>
-
 </div>
 </div>
 </x-dc>
@@ -1149,7 +1147,6 @@ class Component extends DCLogic {
       recordDayFills: count(D.recordDay.n),
       recordPeakHour: D.recordDay.peakFee > 0 ? pad(D.recordDay.peakHour) + ':00' : '–',
       recordPeakFee: money(D.recordDay.peakFee, 2),
-      methodCount: rows.length.toLocaleString('en-US') + ' active hours, ' + count(D.totalN) + ' transfers',
     });
   }
 }
