@@ -14,6 +14,8 @@ Served at **https://fees.inj.so**
 - `lib/fee-store.js` – SQLite storage for transactions, hourly aggregates, and sync state
 - `lib/fee-sync.js` – lightweight incremental Injective LCD ingestion
 - `lib/explorer-fee-sync.js` – explicit full-history explorer backfill
+- `lib/explorer-channel-backfill.js` – explorer backfill of the API / TrueCurrent split
+- `lib/channel-shares.js` – daily and windowed fee shares per channel
 - `scripts/fetch-fees.mjs` – command-line sync and rebuild entry point
 - `scripts/verify-bps.mjs` – live check of the flat 4.0 bps assumption
 - `lib/daily-fees.js` – UTC-day series derived from the hourly rows
@@ -37,6 +39,13 @@ Served at **https://fees.inj.so**
   history is no longer available from public nodes, so older days show no count.
   `takers_since` in `sync_state` marks how far back the counts are complete.
 
+- Each fee transaction is split by where its trades came from. An accepted quote
+  whose client order ID (`cid`) starts with `tc-web` counts as TrueCurrent web,
+  `tc-mobile` as TrueCurrent mobile, and everything else as API. A transaction
+  mixing channels is split by filled notional. The split is stored per
+  transaction in `fee_transfer_channels`, and `channels_since` in `sync_state`
+  marks how far back it is complete. `/api/fees` serves it as `channels.daily`.
+
 ## Refreshing fee history
 
 The production process runs an incremental sync five seconds after startup and
@@ -48,7 +57,12 @@ hash. The dashboard also reloads the cached API once per hour.
 npm run sync:fees       # one incremental update
 npm run sync:fees -- --since 2026-10-01T00:00:00Z   # re-read back to a time (within LCD retention)
 npm run rebuild:fees    # intentionally heavy complete history rebuild
+npm run backfill:channels -- --since 2026-06-01   # API / TrueCurrent split for past days
 ```
+
+The channel backfill reads the explorer one UTC day at a time and only writes
+channel rows, so stored fee totals are never changed. A full run since June
+takes a few minutes.
 
 The complete rebuild scans the explorer account history in 100-transaction
 pages, normalizes fee transfers, deduplicates transaction hashes, and replaces
