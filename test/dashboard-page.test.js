@@ -87,3 +87,34 @@ test('page logic renders before trader tracking starts', async () => {
   assert.equal(vals.ledger[0].tradersTitle, 'Trader tracking has not started');
   assert.doesNotMatch(vals.todayNote, /traders/);
 });
+
+test('page logic renders API and TrueCurrent fee shares', async () => {
+  const Component = await loadComponent();
+  const base = { rows: hourlyRows(), snapshotAt: '2026-09-12T21:06:00Z', traders: null };
+
+  const before = render(Component, { ...base, channels: null });
+  assert.equal(before.hasShares, false);
+  assert.equal(before.shareSummary[0].note, 'Channel tracking has not started');
+
+  const vals = render(Component, {
+    ...base,
+    channels: {
+      since: '2026-09-11T00:00:00.000Z',
+      daily: [
+        { date: '2026-09-11', api: 6, web: 3, mobile: 1 },
+        { date: '2026-09-12', api: 9, web: 0, mobile: 1 },
+      ],
+    },
+  });
+  assert.equal(vals.hasShares, true);
+  assert.deepEqual(
+    vals.shareSummary.map((s) => s.v),
+    ['75%', '75%', '75%', '25%'],
+  );
+  assert.equal(vals.shareSummary[3].note, 'web 15% · mobile 10%');
+  assert.deepEqual(
+    vals.shareBars.map((b) => [b.web, b.mobile, b.opacity]),
+    [['30.00%', '10.00%', '1'], ['0.00%', '10.00%', '0.6']],
+  );
+  assert.match(vals.shareBars[1].title, /^Sat Sep 12 so far: API 90% · web 0% · mobile 10% of \$10\.00$/);
+});

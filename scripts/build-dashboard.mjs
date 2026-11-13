@@ -3,6 +3,7 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 
+import { buildChannelShares } from '../lib/channel-shares.js';
 import { buildDailyFees } from '../lib/daily-fees.js';
 import {
   buildBundle,
@@ -19,6 +20,7 @@ const source = await readFile(sourcePath, 'utf8');
 const syncedSource = syncLibBlocks(source, {
   'rolling-fees': calculateRolling24.toString(),
   'daily-fees': buildDailyFees.toString(),
+  'channel-shares': buildChannelShares.toString(),
 });
 if (syncedSource !== source) {
   await writeFile(sourcePath, syncedSource);

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 
+import { buildChannelShares } from '../lib/channel-shares.js';
 import { buildDailyFees } from '../lib/daily-fees.js';
 import {
   buildTemplate,
@@ -18,6 +19,7 @@ const runtimeUrl = new URL('../support.js', import.meta.url);
 const libBlocks = {
   'rolling-fees': calculateRolling24.toString(),
   'daily-fees': buildDailyFees.toString(),
+  'channel-shares': buildChannelShares.toString(),
 };
 
 test('encodes camelCase attributes the way the runtime decodes them', () => {

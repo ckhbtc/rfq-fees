@@ -28,6 +28,7 @@ body:has(.page[data-theme="light"]) { background: #F4F6FA; color-scheme: light; 
   --record: #FFB547; --record-text: #FFB547; --record-line: #5C4320; --pill-line: #1E4A5E;
   --seg-on: #22304F; --seg-shadow: none; --track: #131B30; --profile: #33507F; --zero: #24304D;
   --heat-zero: #141D33; --hatch-line: #1C2742;
+  --ch-api: #3D8BFF; --ch-web: #5FE1F5; --ch-mobile: #C79BFF;
 }
 .page[data-theme="light"] {
   color-scheme: light;
@@ -38,6 +39,7 @@ body:has(.page[data-theme="light"]) { background: #F4F6FA; color-scheme: light; 
   --record: #F0A030; --record-text: #A15C00; --record-line: #F1CF97; --pill-line: #A9D6E5;
   --seg-on: #FFFFFF; --seg-shadow: 0 1px 2px rgba(14, 21, 38, 0.14); --track: #EEF2F7; --profile: #A9BEE0; --zero: #D9E0EB;
   --heat-zero: #EEF2F7; --hatch-line: #D3DAE6;
+  --ch-api: #2F6FE0; --ch-web: #0B9AB8; --ch-mobile: #8A55D6;
 }
 a { color: var(--accent); text-decoration: none; }
 a:hover { color: var(--accent-hover); }
@@ -62,6 +64,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .ledger-scroll { overflow-x: auto; margin: 0 -14px; padding: 0 14px; }
   .ledger-grid { min-width: 720px; }
   .notes { grid-template-columns: minmax(0, 1fr) !important; }
+  .share-summary { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
 </style>
 </helmet>
@@ -399,6 +402,64 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   </div>
 </section>
 
+<section class="panel" style="background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 24px 20px; display: flex; flex-direction: column; gap: 20px">
+  <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 16px 24px; flex-wrap: wrap">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Fig. 4 · Who pays the fees</span>
+      <h2 style="margin: 0; font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 34px; letter-spacing: -0.005em; line-height: 1">API traders and TrueCurrent</h2>
+      <span style="font-size: 13px; color: var(--label)">Each bar is one UTC day’s fees, split by where the trades came from. TrueCurrent trades carry a tc-web or tc-mobile order ID; everything else counts as API.</span>
+    </div>
+    <div style="display: flex; gap: 8px 18px; flex-wrap: wrap; font-size: 12px; color: var(--ink2)">
+      <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: var(--ch-api)"></span>API traders</span>
+      <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: var(--ch-web)"></span>TrueCurrent web</span>
+      <span style="display: flex; align-items: center; gap: 8px"><span style="flex: 0 0 10px; height: 10px; border-radius: 2px; background: var(--ch-mobile)"></span>TrueCurrent mobile</span>
+    </div>
+  </div>
+
+  <div class="share-summary" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 24px; padding: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line)">
+    <sc-for list="{{ shareSummary }}" as="s" hint-placeholder-count="4">
+      <div style="display: flex; flex-direction: column; gap: 5px; min-width: 0">
+        <span style="font-size: 12px; color: var(--label)">{{ s.k }}</span>
+        <span style="font-family: 'Instrument Serif', Georgia, serif; font-weight: 400; font-size: 26px; line-height: 1.05; font-variant-numeric: tabular-nums; white-space: nowrap">{{ s.v }}</span>
+        <span style="font-size: 12px; color: var(--ink3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ s.note }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <sc-if value="{{ hasShares }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 8px">
+      <div class="chart-row" style="display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 0 16px">
+        <div style="height: 180px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; color: var(--ink3)">
+          <sc-for list="{{ shareTicks }}" as="t" hint-placeholder-count="5">
+            <span style="line-height: 0; white-space: nowrap">{{ t }}</span>
+          </sc-for>
+        </div>
+        <div style="height: 180px; display: flex; align-items: stretch; gap: {{ shareGap }}">
+          <sc-for list="{{ shareBars }}" as="b" hint-placeholder-count="90">
+            <div title="{{ b.title }}" style="flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; border-radius: 2px; overflow: hidden; opacity: {{ b.opacity }}; cursor: crosshair">
+              <div style="height: {{ b.mobile }}; background: var(--ch-mobile)"></div>
+              <div style="height: {{ b.web }}; background: var(--ch-web)"></div>
+              <div style="flex: 1 1 auto; background: var(--ch-api)"></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div class="chart-row" style="display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 0 16px">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; line-height: 16px; color: var(--ink3); text-align: right">UTC</span>
+        <div style="display: flex; gap: {{ shareGap }}; height: 16px">
+          <sc-for list="{{ shareX }}" as="x" hint-placeholder-count="90">
+            <div style="flex: 1 1 0; min-width: 0; position: relative">
+              <sc-if value="{{ x.show }}" hint-placeholder-val="{{ false }}">
+                <span style="position: absolute; top: 0; left: {{ x.left }}; right: {{ x.right }}; padding: 0 4px; border-left: {{ x.bl }}; border-right: {{ x.br }}; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10.5px; line-height: 16px; color: var(--ink2); white-space: nowrap">{{ x.text }}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</section>
+
 <section class="notes" style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; padding: 28px 0 8px; border-top: 1px solid var(--line)">
   <div style="display: flex; flex-direction: column; gap: 10px">
     <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent)">Note i</span>
@@ -578,6 +639,57 @@ function buildDailyFees(rows, currentHourKey) {
 }
 // </lib:daily-fees>
 
+// <lib:channel-shares>
+function buildChannelShares(channels) {
+  const daily = (channels && channels.daily) || [];
+  const days = daily.map((row) => {
+    const api = row.api || 0;
+    const web = row.web || 0;
+    const mobile = row.mobile || 0;
+    const total = api + web + mobile;
+    return {
+      date: row.date,
+      api: api,
+      web: web,
+      mobile: mobile,
+      total: total,
+      apiShare: total ? api / total : 0,
+      webShare: total ? web / total : 0,
+      mobileShare: total ? mobile / total : 0,
+    };
+  });
+
+  // Fee-weighted shares over the last n days (all days when n is omitted).
+  function windowShares(n) {
+    const slice = n ? days.slice(-n) : days;
+    let api = 0;
+    let web = 0;
+    let mobile = 0;
+    slice.forEach((d) => {
+      api += d.api;
+      web += d.web;
+      mobile += d.mobile;
+    });
+    const total = api + web + mobile;
+    return {
+      days: slice.length,
+      total: total,
+      api: total ? api / total : 0,
+      web: total ? web / total : 0,
+      mobile: total ? mobile / total : 0,
+    };
+  }
+
+  return {
+    since: (channels && channels.since) || null,
+    days: days,
+    last7: windowShares(7),
+    last30: windowShares(30),
+    all: windowShares(),
+  };
+}
+// </lib:channel-shares>
+
 function pad(h) { return String(h).padStart(2, '0'); }
 function money(v, dp) {
   return '$' + v.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
@@ -675,6 +787,11 @@ const LOADING = {
   hasPeak: false,
   hasCum: false,
   roParts: [],
+  shareSummary: [],
+  shareTicks: [],
+  shareBars: [],
+  shareX: [],
+  hasShares: false,
 };
 
 function deriveLedger(rows, snapshotAt, traders) {
@@ -796,7 +913,7 @@ class Component extends DCLogic {
         if (!r.ok) throw new Error('fee cache unavailable');
         return r.json();
       })
-      .then((j) => this.setState({ rows: j.rows, snapshotAt: j.snapshotAt, traders: j.traders || null }))
+      .then((j) => this.setState({ rows: j.rows, snapshotAt: j.snapshotAt, traders: j.traders || null, channels: j.channels || null }))
       .catch(() => {
         if (!this.state.rows) {
           import('./fee-data.js').then((m) => this.setState({ rows: m.parseHourly() }));
@@ -1060,6 +1177,37 @@ class Component extends DCLogic {
       };
     });
 
+    // Who pays: daily fee shares by channel, from channels.since onward.
+    const S = buildChannelShares(this.state.channels);
+    const pct = (x) => (x > 0 && x < 0.005 ? '<1%' : Math.round(x * 100) + '%');
+    const sDays = S.days;
+    const sN = sDays.length;
+    const shareGap = sN > 100 ? '1px' : sN > 40 ? '2px' : '4px';
+    const shareSummary = sN
+      ? [
+          { k: 'API share, last 7 days', v: pct(S.last7.api), note: money(S.last7.total * S.last7.api, 0) + ' of ' + money(S.last7.total, 0) },
+          { k: 'API share, last 30 days', v: pct(S.last30.api), note: money(S.last30.total * S.last30.api, 0) + ' of ' + money(S.last30.total, 0) },
+          { k: 'API share, all tracked', v: pct(S.all.api), note: 'since ' + dayShort(sDays[0].date) + ', ' + sDays[0].date.slice(0, 4) },
+          { k: 'TrueCurrent, all tracked', v: pct(S.all.web + S.all.mobile), note: 'web ' + pct(S.all.web) + ' · mobile ' + pct(S.all.mobile) },
+        ]
+      : [{ k: 'API share', v: '–', note: 'Channel tracking has not started' }];
+    const shareBars = sDays.map((d, j) => ({
+      web: (d.webShare * 100).toFixed(2) + '%',
+      mobile: (d.mobileShare * 100).toFixed(2) + '%',
+      opacity: j === sN - 1 && d.date === D.today.date ? '0.6' : '1',
+      title: dayLong(d.date) + (d.date === D.today.date ? ' so far' : '') + ': API ' + pct(d.apiShare) +
+        ' · web ' + pct(d.webShare) + ' · mobile ' + pct(d.mobileShare) + ' of ' + money(d.total, 2),
+    }));
+    const sFirstStart = sDays.findIndex((d) => +d.date.slice(8, 10) === 1);
+    const sTail = Math.max(5, Math.round(sN * 0.1));
+    const shareX = sDays.map((d, j) => {
+      if (j === sN - 1) {
+        return { show: true, text: dayShort(d.date), left: 'auto', right: '0', bl: 'none', br: '1px solid var(--line-strong)' };
+      }
+      const show = sN <= 45 ? j % 7 === 0 : +d.date.slice(8, 10) === 1 || (j === 0 && (sFirstStart < 0 || sFirstStart >= 8));
+      return { show: show && j < sN - sTail, text: dayShort(d.date), left: '0', right: 'auto', bl: '1px solid var(--line-strong)', br: 'none' };
+    });
+
     const R = D.rolling;
     const record24End = R.isNewRecord ? hourLabel(R.recordEndKey) + ' · live' : hourEndLabel(R.recordEndKey);
     const recLeftPct = D.recPt.x / 10;
@@ -1119,6 +1267,13 @@ class Component extends DCLogic {
       roHint: roHint,
 
       ledger: ledger,
+
+      shareSummary: shareSummary,
+      shareTicks: ['100%', '75%', '50%', '25%', '0%'],
+      shareBars: shareBars,
+      shareX: shareX,
+      shareGap: shareGap,
+      hasShares: sN > 0,
 
       cumPath: D.cumPath,
       cumArea: D.cumArea,
