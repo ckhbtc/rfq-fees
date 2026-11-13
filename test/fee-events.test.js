@@ -1,7 +1,13 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { feeOf, takersOf, toFeeTransfer } from '../lib/fee-events.js';
+import {
+  channelFeesOf,
+  channelOfCid,
+  feeOf,
+  takersOf,
+  toFeeTransfer,
+} from '../lib/fee-events.js';
 
 const address = 'inj1collector';
 const denom = 'factory/usdc';
@@ -45,6 +51,7 @@ test('converts successful fee transactions into stored rows', () => {
       hourUtc: '2026-07-27T21',
       feeMicroUsdc: 1_200_000,
       takers: [],
+      channels: { api: 1_200_000 },
     },
   );
 });
@@ -113,4 +120,52 @@ test('reads unique RFQ takers from accept_quote events', () => {
     ['inj1alice', 'inj1bob'],
   );
   assert.deepEqual(takersOf(fee), []);
+});
+
+function acceptQuote(cid, q, price) {
+  return {
+    type: 'wasm-rfq-accept-quote',
+    attributes: [
+      { key: 'taker', value: 'inj1taker' },
+      { key: 'cid', value: JSON.stringify(cid) },
+      {
+        key: 'quotes',
+        value: JSON.stringify([{ maker: 'inj1maker', price: String(price) }]),
+      },
+      {
+        key: 'results',
+        value: JSON.stringify([{ maker: 'inj1maker', q: String(q) }]),
+      },
+    ],
+  };
+}
+
+test('classifies TrueCurrent web and mobile order IDs, everything else as API', () => {
+  assert.equal(channelOfCid('"tc-web-510b42ba"'), 'web');
+  assert.equal(channelOfCid('tc-mobile-ios-80cd683c'), 'mobile');
+  assert.equal(channelOfCid('"rfq-probe-1"'), 'api');
+  assert.equal(channelOfCid('null'), 'api');
+  assert.equal(channelOfCid(undefined), 'api');
+});
+
+test('gives a single-channel transaction its whole fee', () => {
+  const tx = transaction({
+    events: [...transaction().events, acceptQuote('tc-web-1', 1, 100)],
+  });
+  assert.deepEqual(toFeeTransfer(tx, { address, denom }).channels, {
+    web: 1_200_000,
+  });
+});
+
+test('splits a mixed transaction by filled notional and keeps every micro-USDC', () => {
+  const tx = transaction({
+    events: [
+      ...transaction().events,
+      acceptQuote('tc-mobile-1', 1, 100),
+      acceptQuote('abc', 2, 100),
+    ],
+  });
+  const split = channelFeesOf(tx, 1_000_001);
+  assert.deepEqual(split, { mobile: 333_333, api: 666_668 });
+  assert.equal(split.mobile + split.api, 1_000_001);
 });

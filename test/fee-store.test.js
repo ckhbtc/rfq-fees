@@ -224,3 +224,59 @@ test('replaceTransfers refuses to shrink stored transfers unless forced', () => 
   );
   store.close();
 });
+
+function split(txHash, timestamp, channels) {
+  return {
+    ...tracked(txHash, timestamp, []),
+    feeMicroUsdc: Object.values(channels).reduce((a, b) => a + b, 0),
+    channels,
+  };
+}
+
+test('reports daily fees per channel once channel tracking starts', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  assert.deepEqual(store.getSnapshot().channels, { since: null, daily: [] });
+
+  store.insertTransfers(
+    [
+      split('A', '2026-10-01T01:10:00Z', { web: 250_000 }),
+      split('B', '2026-10-01T05:20:00Z', { api: 700_000, mobile: 50_000 }),
+      split('C', '2026-10-02T03:30:00Z', { api: 1_000_000 }),
+    ],
+    { coveredFrom: '2026-10-01T00:00:00.000Z' },
+  );
+
+  assert.deepEqual(store.getSnapshot().channels, {
+    since: '2026-10-01T00:00:00.000Z',
+    daily: [
+      { date: '2026-10-01', api: 0.7, web: 0.25, mobile: 0.05 },
+      { date: '2026-10-02', api: 1, web: 0, mobile: 0 },
+    ],
+  });
+  store.close();
+});
+
+test('channel backfill fills history without touching fee totals', () => {
+  const store = createFeeStore({ dbPath: ':memory:' });
+  store.insertTransfers(
+    [split('A', '2026-10-02T01:00:00Z', { api: 100_000 })],
+    { coveredFrom: '2026-10-02T00:00:00.000Z' },
+  );
+  const before = store.getStats();
+
+  store.insertChannels(
+    [
+      split('OLD', '2026-10-01T09:00:00Z', { web: 400_000 }),
+      split('A', '2026-10-02T01:00:00Z', { api: 100_000 }),
+    ],
+  );
+  assert.equal(store.getSnapshot().channels.since, '2026-10-02T00:00:00.000Z');
+
+  store.insertChannels([], { coveredFrom: '2026-10-01T00:00:00.000Z' });
+  assert.deepEqual(store.getStats(), before);
+  assert.deepEqual(store.getSnapshot().channels.daily, [
+    { date: '2026-10-01', api: 0, web: 0.4, mobile: 0 },
+    { date: '2026-10-02', api: 0.1, web: 0, mobile: 0 },
+  ]);
+  store.close();
+});

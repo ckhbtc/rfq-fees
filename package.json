@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "backfill:channels": "node --no-warnings scripts/fetch-fees.mjs --channels",
     "build": "node scripts/build-dashboard.mjs",
     "rebuild:fees": "node --no-warnings scripts/fetch-fees.mjs --rebuild",
     "start": "node --no-warnings server.js",

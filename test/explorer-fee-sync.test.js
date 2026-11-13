@@ -71,6 +71,7 @@ test('normalizes successful explorer fee transfers', () => {
       hourUtc: '2026-06-02T17',
       feeMicroUsdc: 3_772,
       takers: [],
+      channels: { api: 3_772 },
     },
   );
 
